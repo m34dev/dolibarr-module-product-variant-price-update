@@ -1,21 +1,21 @@
 # Translation file
 
 # Module label 'ModuleproductvariantpriceupdateName'
-ModuleProductVariantPriceUpdateName = Product Variant Price Update
+ModuleProductVariantPriceUpdateName = Mise à jour Prix Variante Produit
 # Module description 'ModuleproductvariantpriceupdateDesc'
 ModuleProductVariantPriceUpdateDesc = Mise à jour prix et poids des produits variantes
 
 #
 # Admin page
 #
-ProductVariantPriceUpdateSetup = Product Variant Price Update
+ProductVariantPriceUpdateSetup = Mise à jour Prix Variante Produit
 Settings = Settings
 ProductVariantPriceUpdateSetupPage = Options
-ProductVariantPriceUpdateLevelShort = Product Variant Price Update
+ProductVariantPriceUpdateLevelShort = Mise à jour Prix Variante Produit
 ProductVariantPriceUpdateLevel = Total Product Variant Price Update
-ProductVariantPriceUpdateLevelTip = Nombre maximum de Product Variant Price Update
+ProductVariantPriceUpdateLevelTip = Nombre maximum de Mise à jour Prix Variante Produit
 NA = N/A
-ProductVariantPriceUpdate_OPTION = Afficher Product Variant Price Update
+ProductVariantPriceUpdate_OPTION = Afficher Mise à jour Prix Variante Produit
 Variants = Variantes
 Variant = Variante
 NbVariants = %s variantes

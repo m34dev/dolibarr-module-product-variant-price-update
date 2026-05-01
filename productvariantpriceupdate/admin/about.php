@@ -106,8 +106,8 @@ print load_fiche_titre($langs->trans($title), $linkback, 'object_productvariantp
 $head = productVariantPriceUpdateAdminPrepareHead();
 print dol_get_fiche_head($head, 'about', $langs->trans($title), 0, 'setup');
 
-dol_include_once('/productvariantpriceupdate/core/modules/modproductvariantpriceupdate.class.php');
-$tmpmodule = new modproductvariantpriceupdate($db);
+dol_include_once('/productvariantpriceupdate/core/modules/modProductVariantPriceUpdate.class.php');
+$tmpmodule = new modProductVariantPriceUpdate($db);
 print $tmpmodule->getDescLong();
 
 // Page end
