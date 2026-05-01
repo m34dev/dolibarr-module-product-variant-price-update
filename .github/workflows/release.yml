@@ -15,6 +15,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check pre-release
+        id: prerelease
+        run: |
+          if [[ "${{ github.ref_name }}" == *-* ]]; then
+            echo "value=true" >> $GITHUB_OUTPUT
+          else
+            echo "value=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Package module
         run: |
           echo "Packaging productvariantpriceupdate module ..."
@@ -27,6 +36,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: Release ${{ github.ref_name }}
+          name: Release v${{ github.ref_name }}
           body: Release created from CI/CD
+          prerelease: ${{ steps.prerelease.outputs.value }}
           files: module_productvariantpriceupdate-${{ github.ref_name }}.zip
