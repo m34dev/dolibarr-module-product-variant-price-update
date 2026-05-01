@@ -15,79 +15,79 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use Luracast\Restler\RestException;
-
-dol_include_once('/productvariantpriceupdate/class/productvariantpriceupdate.class.php');
-
-
-
-/**
- * \file    htdocs/productvariantpriceupdate/class/api_productvariantpriceupdate.class.php
- * \ingroup productvariantpriceupdate
- * \brief   API for productvariantpriceupdate module
- */
-
-/**
- * API class for productvariantpriceupdate
- * @access protected
- * @class  DolibarrApiAccess {@requires user,external}
- */
-class ProductVariantPriceUpdateApi extends DolibarrApi
-{
-	
-	/**
-	 * Constructor
-	 *
-	 * @url     GET /
-	 */
-	public function __construct()
-	{
-		global $db;
-		$this->db = $db;
-	}
-	
-	
-	/* BEGIN MODULEBUILDER API MYOBJECT */
-	
-	/**
-	 * Get Product Variant Price Update
-	 *
-	 * Return Product Variant Price Update
-	 *
-	 * @param	string		$ref	Ref of Product Variant Price Update
-	 * @return	Int					Product Variant Price Updatev
-	 *
-	 * @url	GET productvariantpriceupdate/{ref}
-	 *
-	 * @throws RestException 403 Not allowed
-	 * @throws RestException 404 Not found
-	 * @throws RestException 500 Internal server error
-	 */
-	public function get($ref)
-	{
-		if (!DolibarrApiAccess::$user->hasRight('produit', 'lire')) {
-			throw new RestException(403);
-		}
-		if (!DolibarrApiAccess::$user->hasRight('stock', 'lire')) {
-			throw new RestException(403);
-		}
-		$product = new Product($this->db);
-		$result = $product->fetch(0, $ref);
-		if ($result == -1) {
-			throw new RestException(404, 'Product not found');
-		}
-		$product_id = $product->id;
-		$result = 1;
-		if ($result == -1) {
-			throw new RestException(404, 'Product not found');
-		}
-		if ($result == -2) {
-			throw new RestException(500, 'Product is a service');
-		}
-		if ($result == -3) {
-			throw new RestException(500, 'Product has no subproducts');
-		}
-		
-		return $result;
-	}
-}
+// use Luracast\Restler\RestException;
+//
+// dol_include_once('/productvariantpriceupdate/class/productvariantpriceupdate.class.php');
+//
+//
+//
+// /**
+//  * \file    htdocs/productvariantpriceupdate/class/api_productvariantpriceupdate.class.php
+//  * \ingroup productvariantpriceupdate
+//  * \brief   API for productvariantpriceupdate module
+//  */
+//
+// /**
+//  * API class for productvariantpriceupdate
+//  * @access protected
+//  * @class  DolibarrApiAccess {@requires user,external}
+//  */
+// class ProductVariantPriceUpdateApi extends DolibarrApi
+// {
+//
+// 	/**
+// 	 * Constructor
+// 	 *
+// 	 * @url     GET /
+// 	 */
+// 	public function __construct()
+// 	{
+// 		global $db;
+// 		$this->db = $db;
+// 	}
+//
+//
+// 	/* BEGIN MODULEBUILDER API MYOBJECT */
+//
+// 	/**
+// 	 * Get Product Variant Price Update
+// 	 *
+// 	 * Return Product Variant Price Update
+// 	 *
+// 	 * @param	string		$ref	Ref of Product Variant Price Update
+// 	 * @return	Int					Product Variant Price Updatev
+// 	 *
+// 	 * @url	GET productvariantpriceupdate/{ref}
+// 	 *
+// 	 * @throws RestException 403 Not allowed
+// 	 * @throws RestException 404 Not found
+// 	 * @throws RestException 500 Internal server error
+// 	 */
+// 	public function get($ref)
+// 	{
+// 		if (!DolibarrApiAccess::$user->hasRight('produit', 'lire')) {
+// 			throw new RestException(403);
+// 		}
+// 		if (!DolibarrApiAccess::$user->hasRight('stock', 'lire')) {
+// 			throw new RestException(403);
+// 		}
+// 		$product = new Product($this->db);
+// 		$result = $product->fetch(0, $ref);
+// 		if ($result == -1) {
+// 			throw new RestException(404, 'Product not found');
+// 		}
+// 		$product_id = $product->id;
+// 		$result = 1;
+// 		if ($result == -1) {
+// 			throw new RestException(404, 'Product not found');
+// 		}
+// 		if ($result == -2) {
+// 			throw new RestException(500, 'Product is a service');
+// 		}
+// 		if ($result == -3) {
+// 			throw new RestException(500, 'Product has no subproducts');
+// 		}
+//
+// 		return $result;
+// 	}
+// }

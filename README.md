@@ -4,8 +4,10 @@
 
 Product Variant Price Update. Description of the module.
 
-- Do Product Variant Price Update on parent product card
-- Do Product Variant Price Update on product list
+- View product variant and variations from the product list
+- Run product variant price and weight updates from the product list
+- Run product variant price and weight updates from the product variant price card
+- Run product full or batch variant price and weight updates from module administration
 
 ## Module installation
 
