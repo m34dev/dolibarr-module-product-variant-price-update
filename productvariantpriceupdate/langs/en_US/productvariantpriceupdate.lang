@@ -1,0 +1,18 @@
+# Translation file
+
+# Module label 'ModuleproductvariantpriceupdateName'
+ModuleproductvariantpriceupdateName = Product Variant Price Update
+# Module description 'ModuleproductvariantpriceupdateDesc'
+ModuleproductvariantpriceupdateDesc = Product Variant Price Update
+
+#
+# Admin page
+#
+ProductVariantPriceUpdateSetup = Product Variant Price Update
+Settings = Settings
+ProductVariantPriceUpdateSetupPage = Options
+ProductVariantPriceUpdateLevelShort = Product Variant Price Update
+ProductVariantPriceUpdateLevel = Total Product Variant Price Update
+ProductVariantPriceUpdateLevelTip = Maxmimum number of Product Variant Price Update
+NA = N/A
+ProductVariantPriceUpdate_OPTION = Show Product Variant Price Update
