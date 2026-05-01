@@ -3,7 +3,7 @@
 # Module label 'ModuleproductvariantpriceupdateName'
 ModuleproductvariantpriceupdateName = Product Variant Price Update
 # Module description 'ModuleproductvariantpriceupdateDesc'
-ModuleproductvariantpriceupdateDesc = Product Variant Price Update
+ModuleproductvariantpriceupdateDesc = Product variant price and weight update
 
 #
 # Admin page
@@ -19,7 +19,22 @@ ProductVariantPriceUpdate_OPTION = Show Product Variant Price Update
 Variants = Variants
 Variant = Variant
 NbVariants = %s variants
-UpdateVariantPrices = Update variant prices
+UpdateVariantPrices = Update variant prices and weights
+UpdateVariantPriceFromParent = Update price from parent
+VariantPriceUpdatedFromParent = Variant price updated from parent
 VariantPricesUpdated = %s variant price(s) updated
 ProductHasNoVariants = Product %s has no variants — skipped
 ProductIsVariantNoChildren = Product %s is itself a variant and has no children — skipped
+VariantPriceUpdateTool = Bulk variant price and weight update
+NbParentProducts = Parent products
+NbChildProducts = Child (variant) products
+UpdateAllVariantPrices = Update all variant prices and weights
+AllVariantPricesUpdated = %s variant(s) updated successfully
+AllVariantPricesUpdateErrors = %s error(s) occurred during update
+BatchVariantPriceUpdate = Batch variant price update
+BatchSize = Products per batch
+BatchRun = Run batch
+BatchContinue = Continue batch
+BatchProgress = Processing parent products: lot %s – %s of %s
+BatchRemaining = %s remaining
+BatchComplete = All batches complete

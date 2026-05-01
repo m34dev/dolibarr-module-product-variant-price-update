@@ -70,6 +70,69 @@ class ActionsProductVariantPriceUpdate
 	}
 
 	/**
+	 * Registers the "Variants" column into $arrayfields (passed by reference) so it appears
+	 * in the column selector. Must fire before multiSelectArrayWithCheckbox() is called.
+	 *
+	 * @param	array			$parameters		Hook metadatas (context, etc...). Includes arrayfields by reference.
+	 * @param	mixed			&$object		The object to process
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
+	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
+	 */
+	public function doActions($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $arrayfields, $db, $langs, $user;
+
+		if (in_array('productservicelist', $hookmanager->contextarray)) {
+			if (!isModEnabled('variants')) {
+				return 0;
+			}
+
+			$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+			$arrayfields['pvpu.variants'] = array(
+				'label'    => $langs->trans("Variants"),
+				'checked'  => 1,
+				'enabled'  => 1,
+				'position' => 15,
+			);
+
+			return 0;
+		}
+
+		if (in_array('productpricecard', $hookmanager->contextarray) && $action === 'pvpu_update_variant_price') {
+			if (!($user->hasRight('produit', 'creer') || $user->hasRight('service', 'creer'))) {
+				return 0;
+			}
+			if (!isModEnabled('variants') || !$object->isVariant()) {
+				return 0;
+			}
+
+			$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+			require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+			require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
+			$comb = new ProductCombination($db);
+			if ($comb->fetchByFkProductChild($object->id) > 0) {
+				$parent = new Product($db);
+				if ($parent->fetch($comb->fk_product_parent) > 0) {
+					$result = $comb->updateProperties($parent, $user);
+					if ($result < 0) {
+						setEventMessages($comb->error, $comb->errors, 'errors');
+						return -1;
+					}
+					setEventMessages($langs->trans("VariantPriceUpdatedFromParent"), null, 'mesgs');
+				}
+			}
+
+			return 0;
+		}
+
+		return 0;
+	}
+
+	/**
 	 * Overloading the formObjectOptions function: replacing the parent's function with the one below
 	 *
 	 * @param	array			$parameters		Hook metadatas (context, etc...)
@@ -99,7 +162,7 @@ class ActionsProductVariantPriceUpdate
 		if (!in_array('productservicelist', $hookmanager->contextarray)) {
 			return 0;
 		}
-		if (!isModEnabled('variants')) {
+		if (empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
 			return 0;
 		}
 
@@ -124,7 +187,7 @@ class ActionsProductVariantPriceUpdate
 		if (!in_array('productservicelist', $hookmanager->contextarray)) {
 			return 0;
 		}
-		if (!isModEnabled('variants')) {
+		if (empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
 			return 0;
 		}
 
@@ -156,7 +219,7 @@ class ActionsProductVariantPriceUpdate
 		if (!in_array('productservicelist', $hookmanager->contextarray)) {
 			return 0;
 		}
-		if (!isModEnabled('variants')) {
+		if (empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
 			return 0;
 		}
 
@@ -174,8 +237,49 @@ class ActionsProductVariantPriceUpdate
 
 		$this->resprints = '<td class="center">'.$cell.'</td>';
 
-		if (!empty($parameters['i']) && $parameters['i'] == 0) {
+		if ($parameters['i'] == 0) {
 			$parameters['totalarray']['nbfield']++;
+		}
+
+		return 0;
+	}
+
+	/**
+	 * Adds an "Update price from parent" button on the product price card for variant products.
+	 * Prints directly since price.php does not print $hookmanager->resPrint after this hook.
+	 *
+	 * @param	array			$parameters		Hook metadatas (context, etc...)
+	 * @param	mixed			&$object		The product object
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
+	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
+	 */
+	public function addMoreActionsButtons($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $langs, $user;
+
+		if (!in_array('productpricecard', $hookmanager->contextarray)) {
+			return 0;
+		}
+		if (!isModEnabled('variants') || !$object->isVariant()) {
+			return 0;
+		}
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		if ($user->hasRight('produit', 'creer') || $user->hasRight('service', 'creer')) {
+			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'" style="display:inline-block;">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="pvpu_update_variant_price">';
+			print '<input type="hidden" name="id" value="'.$object->id.'">';
+			print '<div class="inline-block divButAction">';
+			print '<input type="submit" class="butAction" value="'.$langs->trans("UpdateVariantPriceFromParent").'">';
+			print '</div>';
+			print '</form>';
+		} else {
+			print '<div class="inline-block divButAction">';
+			print '<span class="butActionRefused classfortooltip" title="'.dol_escape_htmltag($langs->trans("NotEnoughPermissions")).'">'.$langs->trans("UpdateVariantPriceFromParent").'</span>';
+			print '</div>';
 		}
 
 		return 0;

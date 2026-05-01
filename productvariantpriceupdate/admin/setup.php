@@ -23,11 +23,9 @@
 
 // Load Dolibarr environment
 $res = 0;
-// Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
 if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
 	$res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
 }
-// Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
 $tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
 $tmp2 = realpath(__FILE__);
 $i = strlen($tmp) - 1;
@@ -42,7 +40,6 @@ if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
 if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
 	$res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
 }
-// Try main.inc.php using relative path
 if (!$res && file_exists("../../main.inc.php")) {
 	$res = @include "../../main.inc.php";
 }
@@ -55,7 +52,6 @@ if (!$res) {
 
 // Libraries
 require_once DOL_DOCUMENT_ROOT."/core/lib/admin.lib.php";
-require_once DOL_DOCUMENT_ROOT.'/core/lib/modulebuilder.lib.php';
 require_once '../lib/productvariantpriceupdate.lib.php';
 
 /**
@@ -69,50 +65,141 @@ require_once '../lib/productvariantpriceupdate.lib.php';
 // Translations
 $langs->loadLangs(array("admin", "productvariantpriceupdate@productvariantpriceupdate"));
 
-// Initialize a technical object to manage hooks of page. Note that conf->hooks_modules contains an array of hook context
-/** @var HookManager $hookmanager */
 $hookmanager->initHooks(array('productvariantpriceupdatesetup', 'globalsetup'));
 
-// Parameters
 $action = GETPOST('action', 'aZ09');
 $backtopage = GETPOST('backtopage', 'alpha');
-$modulepart = GETPOST('modulepart', 'aZ09');	// Used by actions_setmoduleoptions.inc.php
-
-$error = 0;
-$setupnotempty = 0;
 
 // Access control
 if (!$user->admin) {
 	accessforbidden();
 }
 
-
-// Set this to 1 to use the factory to manage constants. Warning, the generated module will be compatible with version v15+ only
-$useFormSetup = 1;
-
-if (!class_exists('FormSetup')) {
-	require_once DOL_DOCUMENT_ROOT.'/core/class/html.formsetup.class.php';
+// Batch state
+$batchSize = max(1, (int) GETPOST('batch_size', 'int'));
+if ($batchSize === 0) {
+	$batchSize = 50;
 }
-$formSetup = new FormSetup($db);
+$batchOffset = max(0, (int) GETPOST('batch_offset', 'int'));
+$batchRan = false;
+$batchNbUpdated = 0;
+$batchNbErrors = 0;
+$batchNbParentsProcessed = 0;
+$batchNbParentsTotal = 0;
+$batchDone = false;
 
-// Access control
-if (!$user->admin) {
-	accessforbidden();
+// Stats
+$nbParentProducts = 0;
+$nbChildProducts = 0;
+
+if (isModEnabled('variants')) {
+	$resql = $db->query('SELECT COUNT(DISTINCT fk_product_parent) as nb FROM '.MAIN_DB_PREFIX.'product_attribute_combination WHERE entity IN ('.getEntity('product').')');
+	if ($resql) {
+		$obj = $db->fetch_object($resql);
+		if ($obj) {
+			$nbParentProducts = (int) $obj->nb;
+		}
+	}
+
+	$resql = $db->query('SELECT COUNT(DISTINCT fk_product_child) as nb FROM '.MAIN_DB_PREFIX.'product_attribute_combination WHERE entity IN ('.getEntity('product').')');
+	if ($resql) {
+		$obj = $db->fetch_object($resql);
+		if ($obj) {
+			$nbChildProducts = (int) $obj->nb;
+		}
+	}
 }
-
-// Enter here all parameters in your setup page
-
-$formSetup->newItem('productvariantpriceupdate_OPTION')->setAsYesNo();
-
-$setupnotempty += count($formSetup->items);
 
 /*
  * Actions
  */
 
-include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
+if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('variants')) {
+	require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 
-$action = 'edit';
+	$resql = $db->query('SELECT COUNT(DISTINCT fk_product_parent) as nb FROM '.MAIN_DB_PREFIX.'product_attribute_combination WHERE entity IN ('.getEntity('product').')');
+	if ($resql) {
+		$obj = $db->fetch_object($resql);
+		if ($obj) {
+			$batchNbParentsTotal = (int) $obj->nb;
+		}
+	}
+
+	$resql = $db->query('SELECT DISTINCT fk_product_parent FROM '.MAIN_DB_PREFIX.'product_attribute_combination WHERE entity IN ('.getEntity('product').') ORDER BY fk_product_parent LIMIT '.(int) $batchSize.' OFFSET '.(int) $batchOffset);
+
+	if ($resql) {
+		while ($obj = $db->fetch_object($resql)) {
+			$batchNbParentsProcessed++;
+			$parent = new Product($db);
+			if ($parent->fetch((int) $obj->fk_product_parent) <= 0) {
+				continue;
+			}
+
+			$comb = new ProductCombination($db);
+			$combinations = $comb->fetchAllByFkProductParent($parent->id);
+
+			foreach ($combinations as $currcomb) {
+				if ($currcomb->updateProperties($parent, $user) < 0) {
+					$batchNbErrors++;
+				} else {
+					$batchNbUpdated++;
+				}
+			}
+		}
+	} else {
+		$batchNbErrors++;
+	}
+
+	$batchRan = true;
+	$batchDone = ($batchNbParentsProcessed < $batchSize);
+
+	if ($batchNbErrors) {
+		setEventMessages($langs->trans("AllVariantPricesUpdateErrors", $batchNbErrors), null, 'errors');
+	}
+	if ($batchNbUpdated) {
+		setEventMessages($langs->trans("AllVariantPricesUpdated", $batchNbUpdated), null, 'mesgs');
+	}
+}
+
+if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('variants')) {
+	require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
+	$nbUpdated = 0;
+	$nbErrors = 0;
+
+	$resql = $db->query('SELECT DISTINCT fk_product_parent FROM '.MAIN_DB_PREFIX.'product_attribute_combination WHERE entity IN ('.getEntity('product').')');
+
+	if ($resql) {
+		while ($obj = $db->fetch_object($resql)) {
+			$parent = new Product($db);
+			if ($parent->fetch((int) $obj->fk_product_parent) <= 0) {
+				continue;
+			}
+
+			$comb = new ProductCombination($db);
+			$combinations = $comb->fetchAllByFkProductParent($parent->id);
+
+			foreach ($combinations as $currcomb) {
+				if ($currcomb->updateProperties($parent, $user) < 0) {
+					$nbErrors++;
+				} else {
+					$nbUpdated++;
+				}
+			}
+		}
+	} else {
+		$nbErrors++;
+	}
+
+	if ($nbErrors) {
+		setEventMessages($langs->trans("AllVariantPricesUpdateErrors", $nbErrors), null, 'errors');
+	}
+	if ($nbUpdated) {
+		setEventMessages($langs->trans("AllVariantPricesUpdated", $nbUpdated), null, 'mesgs');
+	}
+}
 
 /*
  * View
@@ -120,34 +207,89 @@ $action = 'edit';
 
 $form = new Form($db);
 
-$help_url = '';
 $title = "ProductVariantPriceUpdateSetup";
 
-llxHeader('', $langs->trans($title), $help_url, '', 0, 0, '', '', '', 'mod-productvariantpriceupdate page-admin');
+llxHeader('', $langs->trans($title), '', '', 0, 0, '', '', '', 'mod-productvariantpriceupdate page-admin');
 
-// Subheader
 $linkback = '<a href="'.($backtopage ? $backtopage : DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1').'">'.$langs->trans("BackToModuleList").'</a>';
-
 print load_fiche_titre($langs->trans($title), $linkback, 'object_productvariantpriceupdate@productvariantpriceupdate');
 
-// Configuration header
 $head = productVariantPriceUpdateAdminPrepareHead();
 print dol_get_fiche_head($head, 'Setup', $langs->trans($title), -1, "setup");
 
-// Setup page goes here
+// Stats and bulk update
+if (isModEnabled('variants')) {
+	print load_fiche_titre($langs->trans("VariantPriceUpdateTool"), '', '');
 
-echo '<span class="opacitymedium">'.$langs->trans("ProductVariantPriceUpdateSetupPage").'</span><br><br>';
+	print '<div class="div-table-responsive-no-min">';
+	print '<table class="noborder centpercent">';
+	print '<tr class="liste_titre">';
+	print '<td>'.$langs->trans("Statistic").'</td>';
+	print '<td class="right">'.$langs->trans("Value").'</td>';
+	print '</tr>';
 
-if (!empty($formSetup->items)) {
-	print $formSetup->generateOutput(true);
+	print '<tr class="oddeven">';
+	print '<td>'.$langs->trans("NbParentProducts").'</td>';
+	print '<td class="right"><strong>'.$nbParentProducts.'</strong></td>';
+	print '</tr>';
+
+	print '<tr class="oddeven">';
+	print '<td>'.$langs->trans("NbChildProducts").'</td>';
+	print '<td class="right"><strong>'.$nbChildProducts.'</strong></td>';
+	print '</tr>';
+
+	print '</table>';
+	print '</div>';
+
 	print '<br>';
+
+	print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+	print '<input type="hidden" name="token" value="'.newToken().'">';
+	print '<input type="hidden" name="action" value="update_all_variant_prices">';
+	print '<input type="submit" class="button" value="'.$langs->trans("UpdateAllVariantPrices").'">';
+	print '</form>';
+
+	print '<br>';
+
+	// Batch update section
+	print load_fiche_titre($langs->trans("BatchVariantPriceUpdate"), '', '');
+
+	if ($batchRan) {
+		$nextOffset = $batchOffset + $batchNbParentsProcessed;
+		$nbRemaining = max(0, $batchNbParentsTotal - $nextOffset);
+
+		print '<p>';
+		print $langs->trans("BatchProgress", $batchOffset + 1, min($nextOffset, $batchNbParentsTotal), $batchNbParentsTotal);
+		if ($nbRemaining > 0) {
+			print ' — '.$langs->trans("BatchRemaining", $nbRemaining);
+		}
+		print '</p>';
+
+		if ($batchDone) {
+			print '<p><strong>'.$langs->trans("BatchComplete").'</strong></p>';
+		} else {
+			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="batch_update_variant_prices">';
+			print '<input type="hidden" name="batch_offset" value="'.$nextOffset.'">';
+			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
+			print '<input type="submit" class="button" value="'.$langs->trans("BatchContinue").'">';
+			print '</form>';
+		}
+	} else {
+		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+		print '<input type="hidden" name="token" value="'.newToken().'">';
+		print '<input type="hidden" name="action" value="batch_update_variant_prices">';
+		print '<input type="hidden" name="batch_offset" value="0">';
+		print '<label for="batch_size">'.$langs->trans("BatchSize").'</label> ';
+		print '<input type="number" id="batch_size" name="batch_size" value="50" min="1" style="width:80px;"> ';
+		print '<input type="submit" class="button" value="'.$langs->trans("BatchRun").'">';
+		print '</form>';
+	}
+} else {
+	print '<div class="warning">'.$langs->trans("WarningModuleNotEnabled", 'Variants').'</div>';
 }
 
-if (empty($setupnotempty)) {
-	print '<br>'.$langs->trans("NothingToSetup");
-}
-
-// Page end
 print dol_get_fiche_end();
 
 llxFooter();

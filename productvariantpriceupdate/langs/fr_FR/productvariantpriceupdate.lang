@@ -3,7 +3,7 @@
 # Module label 'ModuleproductvariantpriceupdateName'
 ModuleProductVariantPriceUpdateName = Product Variant Price Update
 # Module description 'ModuleproductvariantpriceupdateDesc'
-ModuleProductVariantPriceUpdateDesc = Calculer le Product Variant Price Update
+ModuleProductVariantPriceUpdateDesc = Mise à jour prix et poids des produits variantes
 
 #
 # Admin page
@@ -19,7 +19,22 @@ ProductVariantPriceUpdate_OPTION = Afficher Product Variant Price Update
 Variants = Variantes
 Variant = Variante
 NbVariants = %s variantes
-UpdateVariantPrices = Mettre à jour les prix des variantes
-VariantPricesUpdated = %s prix de variante(s) mis à jour
+UpdateVariantPrices = Actualiser les prix et les poids des variantes
+UpdateVariantPriceFromParent = Actualiser le prix depuis le parent
+VariantPriceUpdatedFromParent = Prix de la variante mis à jour depuis le parent
+VariantPricesUpdated = %s variante(s) mis à jour
 ProductHasNoVariants = Le produit %s n'a pas de variantes — ignoré
 ProductIsVariantNoChildren = Le produit %s est lui-même une variante et n'a pas d'enfants — ignoré
+VariantPriceUpdateTool = Mise à jour groupée des prix et poids des variantes
+NbParentProducts = Produits parents
+NbChildProducts = Produits enfants (variantes)
+UpdateAllVariantPrices = Actualiser les prix et les poids des variantes
+AllVariantPricesUpdated = %s variante(s) mis à jour avec succès
+AllVariantPricesUpdateErrors = %s erreur(s) lors de la mise à jour
+BatchVariantPriceUpdate = Mise à jour des variantes par lot
+BatchSize = Produits par lot
+BatchRun = Lancer le traitement
+BatchContinue = Continuer le traitement
+BatchProgress = Traitement des produits parents : lot %s – %s sur %s
+BatchRemaining = %s restant(s)
+BatchComplete = Tous les lots sont terminés
