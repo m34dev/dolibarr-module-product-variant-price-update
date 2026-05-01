@@ -16,7 +16,7 @@
  */
 
 /**
- * \file    htdocs/productvariantpriceupdate/core/modules/modproductvariantpriceupdate.class.php
+ * \file    htdocs/productvariantpriceupdate/class/actions_productvariantpriceupdate.class.php
  * \ingroup productvariantpriceupdate
  * \brief   Hooks
  */
@@ -32,124 +32,268 @@ class ActionsProductVariantPriceUpdate
 	 * @var DoliDB Database handler.
 	 */
 	public $db;
-	
+
 	/**
 	 * @var string Error code (or message)
 	 */
 	public $error = '';
-	
+
 	/**
 	 * @var string[] Errors
 	 */
 	public $errors = array();
-	
-	
+
 	/**
 	 * @var mixed[] Hook results. Propagated to $hookmanager->resArray for later reuse
 	 */
 	public $results = array();
-	
+
 	/**
 	 * @var ?string String displayed by executeHook() immediately after return
 	 */
 	public $resprints;
-	
+
 	/**
-	 * @var int		Priority of hook (50 is used if value is not defined)
+	 * @var int Priority of hook (50 is used if value is not defined)
 	 */
 	public $priority;
-	
-	
+
+
 	/**
 	 * Constructor
 	 *
-	 *  @param	DoliDB	$db      Database handler
+	 * @param DoliDB $db Database handler
 	 */
-	public function __construct($db)
+	public function __construct(DoliDB $db)
 	{
 		$this->db = $db;
 	}
-	
+
 	/**
 	 * Overloading the formObjectOptions function: replacing the parent's function with the one below
 	 *
 	 * @param	array			$parameters		Hook metadatas (context, etc...)
-	 * @param	Product			&$object		The object to process (an invoice if you are in invoice module, a propale in propale's module, etc...)
+	 * @param	mixed			&$object		The object to process
 	 * @param	string			&$action		Current action (if set). Generally create or edit or null
 	 * @param	HookManager		$hookmanager	Hook manager propagated to allow calling another hook
 	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
 	 */
-	function formObjectOptions($parameters, &$object, &$action, $hookmanager) {
-		global $db, $langs;
+	public function formObjectOptions($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $langs;
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
-		if($action == 'view' || $action == '') {
-		
-		}
 		return 0;
-	}
-	
-	/**
-	 * Overloading the printFieldListOption function: replacing the parent's function with the one below
-	 *
-	 * @param	array			$parameters		Hook metadatas (context, etc...)
-	 * @param	Product			&$object		The object to process (an invoice if you are in invoice module, a propale in propale's module, etc...)
-	 * @param	string			&$action		Current action (if set). Generally create or edit or null
-	 * @param	HookManager		$hookmanager	Hook manager propagated to allow calling another hook
-	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
-	 */
-	function printFieldListOption($parameters, &$object, &$action, $hookmanager) {
-		if(in_array('productservicelist', $hookmanager->contextarray)) {
-			$this->resprints = '<td class="liste_titre">&nbsp</td>';
-			return 0;
-		} else {
-			return 0;
-		}
 	}
 
 	/**
-	 * Overloading the printFieldListTitle function: replacing the parent's function with the one below
+	 * Adds an empty filter cell for the variant status column.
 	 *
 	 * @param	array			$parameters		Hook metadatas (context, etc...)
-	 * @param	Product			&$object		The object to process (an invoice if you are in invoice module, a propale in propale's module, etc...)
-	 * @param	string			&$action		Current action (if set). Generally create or edit or null
-	 * @param	HookManager		$hookmanager	Hook manager propagated to allow calling another hook
+	 * @param	mixed			&$object		The object to process
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
 	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
 	 */
-	function printFieldListTitle($parameters, &$object, &$action, $hookmanager) {
-		global $langs;
-		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
-		return 0;
-	}
-	
-	/**
-	 * Overloading the printFieldListValue function: replacing the parent's function with the one below
-	 *
-	 * @param	array			$parameters		Hook metadatas (context, etc...)
-	 * @param	Product			&$object		The object to process (an invoice if you are in invoice module, a propale in propale's module, etc...)
-	 * @param	string			&$action		Current action (if set). Generally create or edit or null
-	 * @param	HookManager		$hookmanager	Hook manager propagated to allow calling another hook
-	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
-	 */
-	function printFieldListValue($parameters, &$object, &$action, $hookmanager) {
-		global $langs;
-		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
-		if(in_array('productservicelist', $hookmanager->contextarray) || in_array('productcompositioncard', $hookmanager->contextarray)) {
-			return 1;
-		} else {
+	public function printFieldListOption($parameters, &$object, &$action, $hookmanager): int
+	{
+		if (!in_array('productservicelist', $hookmanager->contextarray)) {
 			return 0;
 		}
+		if (!isModEnabled('variants')) {
+			return 0;
+		}
+
+		$this->resprints = '<td class="liste_titre"></td>';
+
+		return 0;
+	}
+
+	/**
+	 * Adds the "Variants" column header to the product list.
+	 *
+	 * @param	array			$parameters		Hook metadatas (context, etc...)
+	 * @param	mixed			&$object		The object to process
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
+	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
+	 */
+	public function printFieldListTitle($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $langs;
+
+		if (!in_array('productservicelist', $hookmanager->contextarray)) {
+			return 0;
+		}
+		if (!isModEnabled('variants')) {
+			return 0;
+		}
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		$this->resprints = '<th class="center">'.$langs->trans("Variants").'</th>';
+
+		$parameters['totalarray']['nbfield']++;
+
+		return 0;
+	}
+
+	/**
+	 * Renders the variant status cell for each product row:
+	 * - Parent with variants: shows the variant count
+	 * - Variant (child): shows a "Variant" badge
+	 * - Plain product: empty cell
+	 *
+	 * @param	array			$parameters		Hook metadatas (context, etc...). Includes 'obj', 'i', 'totalarray'.
+	 * @param	mixed			&$object		The object to process
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
+	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
+	 */
+	public function printFieldListValue($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $langs;
+
+		if (!in_array('productservicelist', $hookmanager->contextarray)) {
+			return 0;
+		}
+		if (!isModEnabled('variants')) {
+			return 0;
+		}
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		$nbVariants = (int) $object->hasVariants();
+		$isVariant = (bool) $object->isVariant();
+
+		$cell = '';
+		if ($isVariant) {
+			$cell = '<span class="opacitymedium">'.$langs->trans("Variant").'</span>';
+		} elseif ($nbVariants > 0) {
+			$cell = $langs->trans("NbVariants", $nbVariants);
+		}
+
+		$this->resprints = '<td class="center">'.$cell.'</td>';
+
+		if (!empty($parameters['i']) && $parameters['i'] == 0) {
+			$parameters['totalarray']['nbfield']++;
+		}
+
+		return 0;
 	}
 
 	/**
 	 * Overloading the loadStaticObject function: replacing the parent's function with the one below
 	 *
 	 * @param	array			$parameters		Hook metadatas (context, etc...)
-	 * @param	Product			&$object		The object to process (an invoice if you are in invoice module, a propale in propale's module, etc...)
-	 * @param	string			&$action		Current action (if set). Generally create or edit or null
-	 * @param	HookManager		$hookmanager	Hook manager propagated to allow calling another hook
+	 * @param	mixed			&$object		The object to process
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
 	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
 	 */
-	function loadStaticObject($parameters, &$object, &$action, $hookmanager) {
+	public function loadStaticObject($parameters, &$object, &$action, $hookmanager): int
+	{
 		return 0;
+	}
+
+	/**
+	 * Adds the "Update variant prices" option to the mass action dropdown on the product list.
+	 *
+	 * @param	array			$parameters		Hook metadatas (context, etc...)
+	 * @param	mixed			&$object		The object to process
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
+	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
+	 */
+	public function addMoreMassActions($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $langs, $user;
+
+		if (!in_array('productservicelist', $hookmanager->contextarray)) {
+			return 0;
+		}
+		if (!isModEnabled('variants')) {
+			return 0;
+		}
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		$disabled = !$user->hasRight('produit', 'creer') ? ' disabled="disabled"' : '';
+		$this->resprints = '<option value="updatevariantprices"'.$disabled.'>'.$langs->trans("UpdateVariantPrices").'</option>';
+
+		return 0;
+	}
+
+	/**
+	 * Handles the "updatevariantprices" mass action: calls ProductCombination::updateProperties()
+	 * for every combination of each selected parent product.
+	 *
+	 * @param	array			$parameters		Hook metadatas (context, etc...). Includes 'toselect' and 'massaction'.
+	 * @param	object			&$object		The object to process
+	 * @param	string			&$action		Current action
+	 * @param	HookManager		$hookmanager	Hook manager
+	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
+	 */
+	public function doMassActions($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $db, $langs, $user;
+
+		if (!in_array('productservicelist', $hookmanager->contextarray)) {
+			return 0;
+		}
+		if ($parameters['massaction'] !== 'updatevariantprices') {
+			return 0;
+		}
+		if (!$user->hasRight('produit', 'creer')) {
+			return 0;
+		}
+		if (!isModEnabled('variants')) {
+			return 0;
+		}
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+		require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
+		$error = 0;
+		$nbUpdated = 0;
+
+		foreach ($parameters['toselect'] as $productId) {
+			$parent = new Product($db);
+			if ($parent->fetch((int) $productId) <= 0) {
+				continue;
+			}
+
+			if (!$parent->hasVariants()) {
+				if ($parent->isVariant()) {
+					setEventMessages($langs->trans("ProductIsVariantNoChildren", $parent->ref), null, 'warnings');
+				} else {
+					setEventMessages($langs->trans("ProductHasNoVariants", $parent->ref), null, 'warnings');
+				}
+				continue;
+			}
+
+			$comb = new ProductCombination($db);
+			$combinations = $comb->fetchAllByFkProductParent($parent->id);
+
+			foreach ($combinations as $currcomb) {
+				$result = $currcomb->updateProperties($parent, $user);
+				if ($result < 0) {
+					$this->errors[] = $currcomb->error;
+					$this->errors = array_merge($this->errors, $currcomb->errors);
+					$error++;
+				} else {
+					$nbUpdated++;
+				}
+			}
+		}
+
+		if ($error) {
+			setEventMessages('', $this->errors, 'errors');
+			return -1;
+		}
+
+		setEventMessages($langs->trans("VariantPricesUpdated", $nbUpdated), null, 'mesgs');
+		return 1;
 	}
 }
