@@ -96,6 +96,18 @@ class ActionsProductVariantPriceUpdate
 				'enabled'  => 1,
 				'position' => 15,
 			);
+			$arrayfields['pvpu.variation_price'] = array(
+				'label'    => $langs->trans("VariationPrice"),
+				'checked'  => 0,
+				'enabled'  => 1,
+				'position' => 16,
+			);
+			$arrayfields['pvpu.variation_weight'] = array(
+				'label'    => $langs->trans("VariationWeight"),
+				'checked'  => 0,
+				'enabled'  => 1,
+				'position' => 17,
+			);
 
 			return 0;
 		}
@@ -162,11 +174,21 @@ class ActionsProductVariantPriceUpdate
 		if (!in_array('productservicelist', $hookmanager->contextarray)) {
 			return 0;
 		}
-		if (empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
-			return 0;
+
+		$out = '';
+		if (!empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
+			$out .= '<td class="liste_titre"></td>';
+		}
+		if (!empty($parameters['arrayfields']['pvpu.variation_price']['checked'])) {
+			$out .= '<td class="liste_titre"></td>';
+		}
+		if (!empty($parameters['arrayfields']['pvpu.variation_weight']['checked'])) {
+			$out .= '<td class="liste_titre"></td>';
 		}
 
-		$this->resprints = '<td class="liste_titre"></td>';
+		if ($out) {
+			$this->resprints = $out;
+		}
 
 		return 0;
 	}
@@ -187,15 +209,26 @@ class ActionsProductVariantPriceUpdate
 		if (!in_array('productservicelist', $hookmanager->contextarray)) {
 			return 0;
 		}
-		if (empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
-			return 0;
-		}
 
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 
-		$this->resprints = '<th class="center">'.$langs->trans("Variants").'</th>';
+		$out = '';
+		if (!empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
+			$out .= '<th class="center">'.$langs->trans("Variants").'</th>';
+			$parameters['totalarray']['nbfield']++;
+		}
+		if (!empty($parameters['arrayfields']['pvpu.variation_price']['checked'])) {
+			$out .= '<th class="center">'.$langs->trans("VariationPrice").'</th>';
+			$parameters['totalarray']['nbfield']++;
+		}
+		if (!empty($parameters['arrayfields']['pvpu.variation_weight']['checked'])) {
+			$out .= '<th class="center">'.$langs->trans("VariationWeight").'</th>';
+			$parameters['totalarray']['nbfield']++;
+		}
 
-		$parameters['totalarray']['nbfield']++;
+		if ($out) {
+			$this->resprints = $out;
+		}
 
 		return 0;
 	}
@@ -214,32 +247,79 @@ class ActionsProductVariantPriceUpdate
 	 */
 	public function printFieldListValue($parameters, &$object, &$action, $hookmanager): int
 	{
-		global $langs;
+		global $db, $langs;
 
 		if (!in_array('productservicelist', $hookmanager->contextarray)) {
 			return 0;
 		}
-		if (empty($parameters['arrayfields']['pvpu.variants']['checked'])) {
+
+		$showVariants       = !empty($parameters['arrayfields']['pvpu.variants']['checked']);
+		$showVariationPrice  = !empty($parameters['arrayfields']['pvpu.variation_price']['checked']);
+		$showVariationWeight = !empty($parameters['arrayfields']['pvpu.variation_weight']['checked']);
+
+		if (!$showVariants && !$showVariationPrice && !$showVariationWeight) {
 			return 0;
 		}
 
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 
-		$nbVariants = (int) $object->hasVariants();
-		$isVariant = (bool) $object->isVariant();
+		$isVariant  = (bool) $object->isVariant();
+		$nbVariants = $isVariant ? 0 : (int) $object->hasVariants();
 
-		$cell = '';
-		if ($isVariant) {
-			$cell = '<span class="opacitymedium">'.$langs->trans("Variant").'</span>';
-		} elseif ($nbVariants > 0) {
-			$cell = $langs->trans("NbVariants", $nbVariants);
+		// Fetch combination data once if any variation column is needed
+		$comb = null;
+		if ($isVariant && ($showVariationPrice || $showVariationWeight)) {
+			require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+			$comb = new ProductCombination($db);
+			if ($comb->fetchByFkProductChild($object->id) <= 0) {
+				$comb = null;
+			}
 		}
 
-		$this->resprints = '<td class="center">'.$cell.'</td>';
+		$out = '';
 
-		if ($parameters['i'] == 0) {
-			$parameters['totalarray']['nbfield']++;
+		if ($showVariants) {
+			$cell = '';
+			if ($isVariant) {
+				$cell = '<span class="opacitymedium">'.$langs->trans("Variant").'</span>';
+			} elseif ($nbVariants > 0) {
+				$cell = $langs->trans("NbVariants", $nbVariants);
+			}
+			$out .= '<td class="center">'.$cell.'</td>';
+			if ($parameters['i'] == 0) {
+				$parameters['totalarray']['nbfield']++;
+			}
 		}
+
+		if ($showVariationPrice) {
+			$cell = '';
+			if ($comb !== null) {
+				$sign = ((float) $comb->variation_price) >= 0 ? '+' : '';
+				if ($comb->variation_price_percentage) {
+					$cell = $sign.$comb->variation_price.'%';
+				} else {
+					$cell = $sign.price($comb->variation_price);
+				}
+			}
+			$out .= '<td class="center">'.$cell.'</td>';
+			if ($parameters['i'] == 0) {
+				$parameters['totalarray']['nbfield']++;
+			}
+		}
+
+		if ($showVariationWeight) {
+			$cell = '';
+			if ($comb !== null && (float) $comb->variation_weight != 0) {
+				$sign = ((float) $comb->variation_weight) >= 0 ? '+' : '';
+				$cell = $sign.$comb->variation_weight;
+			}
+			$out .= '<td class="center">'.$cell.'</td>';
+			if ($parameters['i'] == 0) {
+				$parameters['totalarray']['nbfield']++;
+			}
+		}
+
+		$this->resprints = $out;
 
 		return 0;
 	}
