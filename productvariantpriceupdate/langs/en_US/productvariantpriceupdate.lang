@@ -42,3 +42,13 @@ BatchRemaining = %s remaining
 BatchComplete = All batches complete
 ErrorProductsList = Parent products with errors:
 ReprocessErrorProducts = Reprocess products with errors
+
+#
+# Import
+#
+VariantPriceVariations = Variant price variations
+ChildProductRef = Child product reference
+VariationPriceIsPercent = Price variation is a percentage (0 or 1)
+ErrorProductNotFound = Product ref "%s" not found
+ErrorNotACombinationProduct = Product ref "%s" is not a variant combination
+ErrorProductParentNotFound = Parent product not found for child ref "%s"
