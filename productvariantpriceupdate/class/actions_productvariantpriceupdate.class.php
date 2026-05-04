@@ -381,6 +381,82 @@ class ActionsProductVariantPriceUpdate
 	}
 
 	/**
+	 * Fires after each row is inserted/updated during the variant price import.
+	 * Calls ProductCombination::updateProperties() to propagate the new variation
+	 * to the child product's actual selling price.
+	 *
+	 * @param	array		$parameters		Hook metadatas including 'datatoimport', 'arrayrecord', 'array_match_file_to_database'
+	 * @param	mixed		&$object		Not used
+	 * @param	string		&$action		Not used
+	 * @param	HookManager	$hookmanager	Hook manager
+	 * @return	int							< 0 on error, 0 on success
+	 */
+	public function AfterImportInsert($parameters, &$object, &$action, $hookmanager): int
+	{
+		global $db, $langs, $user;
+
+		if ($parameters['datatoimport'] !== 'productvariantpriceupdate_variantprices') {
+			return 0;
+		}
+
+		// Find which CSV column maps to pac.fk_product_child
+		$childRefColKey = null;
+		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
+			if ($dbfield === 'pac.fk_product_child') {
+				$childRefColKey = (int) $colkey;
+				break;
+			}
+		}
+		if ($childRefColKey === null) {
+			dol_syslog(__METHOD__.' Could not find pac.fk_product_child column in import mapping', LOG_ERR);
+			return 0;
+		}
+
+		// arrayrecord is 0-based; array_match_file_to_database keys are 1-based
+		$childRef = $parameters['arrayrecord'][$childRefColKey - 1]['val'] ?? null;
+		if (empty($childRef)) {
+			dol_syslog(__METHOD__.' Empty child product ref in import row', LOG_ERR);
+			return 0;
+		}
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+		require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
+		$child = new Product($db);
+		if ($child->fetch(0, $childRef) <= 0) {
+			dol_syslog(__METHOD__.' Could not fetch child product ref='.$childRef, LOG_ERR);
+			$this->errors[] = $langs->trans("ErrorProductNotFound", $childRef);
+			return -1;
+		}
+
+		$comb = new ProductCombination($db);
+		if ($comb->fetchByFkProductChild($child->id) <= 0) {
+			dol_syslog(__METHOD__.' No combination found for child product id='.$child->id.' ref='.$childRef, LOG_ERR);
+			$this->errors[] = $langs->trans("ErrorNotACombinationProduct", $childRef);
+			return -1;
+		}
+
+		$parent = new Product($db);
+		if ($parent->fetch($comb->fk_product_parent) <= 0) {
+			dol_syslog(__METHOD__.' Could not fetch parent product id='.$comb->fk_product_parent.' for child ref='.$childRef, LOG_ERR);
+			$this->errors[] = $langs->trans("ErrorProductParentNotFound", $childRef);
+			return -1;
+		}
+
+		$result = $comb->updateProperties($parent, $user);
+		if ($result < 0) {
+			dol_syslog(__METHOD__.' updateProperties failed for child ref='.$childRef.': '.$comb->error, LOG_ERR);
+			$this->errors[] = $comb->error;
+			$this->errors = array_merge($this->errors, $comb->errors);
+			return -1;
+		}
+
+		return 0;
+	}
+
+	/**
 	 * Adds the "Update variant prices" option to the mass action dropdown on the product list.
 	 *
 	 * @param	array			$parameters		Hook metadatas (context, etc...)

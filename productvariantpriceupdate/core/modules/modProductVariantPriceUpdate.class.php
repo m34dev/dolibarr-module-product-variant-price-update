@@ -123,6 +123,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 				       'productcompositioncard',
 					   'productservicelist',
 					   'productpricecard',
+					   'imports',
 				   ),
 				   'entity' => '0',
 			),
@@ -427,38 +428,41 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		// Imports profiles provided by this module
 		$r = 0;
 		/* BEGIN MODULEBUILDER IMPORT MYOBJECT */
-		/*
-		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
-		$this->import_code[$r] = $this->rights_class.'_'.$r;
-		$this->import_label[$r] = 'MyObjectLines';	// Translation key (used only if key ExportDataset_xxx_z not found)
-		$this->import_icon[$r] = $this->picto;
-		$this->import_tables_array[$r] = array('t' => $this->db->prefix().'productvariantpriceupdate_myobject', 'extra' => $this->db->prefix().'productvariantpriceupdate_myobject_extrafields');
-		$this->import_tables_creator_array[$r] = array('t' => 'fk_user_author'); // Fields to store import user id
-		$import_sample = array();
-		$keyforclass = 'MyObject'; $keyforclassfile='/productvariantpriceupdate/class/myobject.class.php'; $keyforelement='myobject@productvariantpriceupdate';
-		include DOL_DOCUMENT_ROOT.'/core/commonfieldsinimport.inc.php';
-		$import_extrafield_sample = array();
-		$keyforselect='myobject'; $keyforaliasextra='extra'; $keyforelement='myobject@productvariantpriceupdate';
-		include DOL_DOCUMENT_ROOT.'/core/extrafieldsinimport.inc.php';
-		$this->import_fieldshidden_array[$r] = array('extra.fk_object' => 'lastrowid-'.$this->db->prefix().'productvariantpriceupdate_myobject');
-		$this->import_regex_array[$r] = array();
-		$this->import_examplevalues_array[$r] = array_merge($import_sample, $import_extrafield_sample);
-		$this->import_updatekeys_array[$r] = array('t.ref' => 'Ref');
-		$this->import_convertvalue_array[$r] = array(
-			't.ref' => array(
-				'rule'=>'getrefifauto',
-				'class'=>(!getDolGlobalString('productvariantpriceupdate_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('productvariantpriceupdate_MYOBJECT_ADDON')),
-				'path'=>"/core/modules/productvariantpriceupdate/".(!getDolGlobalString('productvariantpriceupdate_MYOBJECT_ADDON') ? 'mod_myobject_standard' : getDolGlobalString('productvariantpriceupdate_MYOBJECT_ADDON')).'.php',
-				'classobject'=>'MyObject',
-				'pathobject'=>'/productvariantpriceupdate/class/myobject.class.php',
-			),
-			't.fk_soc' => array('rule' => 'fetchidfromref', 'file' => '/societe/class/societe.class.php', 'class' => 'Societe', 'method' => 'fetch', 'element' => 'ThirdParty'),
-			't.fk_user_valid' => array('rule' => 'fetchidfromref', 'file' => '/user/class/user.class.php', 'class' => 'User', 'method' => 'fetch', 'element' => 'user'),
-			't.fk_mode_reglement' => array('rule' => 'fetchidfromcodeorlabel', 'file' => '/compta/paiement/class/cpaiement.class.php', 'class' => 'Cpaiement', 'method' => 'fetch', 'element' => 'cpayment'),
-		);
-		$this->import_run_sql_after_array[$r] = array();
-		$r++; */
 		/* END MODULEBUILDER IMPORT MYOBJECT */
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+		$this->import_code[$r] = $this->rights_class.'_variantprices';
+		$this->import_label[$r] = 'VariantPriceVariations';
+		$this->import_icon[$r] = $this->picto;
+		$this->import_entities_array[$r] = array();
+		$this->import_tables_array[$r] = array('pac' => $this->db->prefix().'product_attribute_combination');
+		$this->import_fields_array[$r] = array(
+			'pac.fk_product_child'           => 'ChildProductRef*',
+			'pac.variation_price'            => 'VariationPrice*',
+			'pac.variation_price_percentage' => 'VariationPriceIsPercent*',
+			'pac.variation_weight'           => 'VariationWeight',
+		);
+		$this->import_convertvalue_array[$r] = array(
+			'pac.fk_product_child' => array(
+				'rule'      => 'fetchidfromref',
+				'classfile' => '/product/class/product.class.php',
+				'class'     => 'Product',
+				'method'    => 'fetch',
+				'element'   => 'Product',
+			),
+		);
+		$this->import_regex_array[$r] = array(
+			'pac.variation_price_percentage' => '^[01]$',
+		);
+		$this->import_examplevalues_array[$r] = array(
+			'pac.fk_product_child'           => 'PROD-001-RED-L',
+			'pac.variation_price'            => '5.00',
+			'pac.variation_price_percentage' => '0',
+			'pac.variation_weight'           => '0.100',
+		);
+		$this->import_updatekeys_array[$r] = array('pac.fk_product_child' => 'ChildProductRef');
+		$this->import_run_sql_after_array[$r] = array();
+		$r++;
 	}
 
 	/**
