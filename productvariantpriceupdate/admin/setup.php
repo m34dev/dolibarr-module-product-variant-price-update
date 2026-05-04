@@ -133,6 +133,7 @@ if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('va
 			$batchNbParentsProcessed++;
 			$parent = new Product($db);
 			if ($parent->fetch((int) $obj->fk_product_parent) <= 0) {
+				dol_syslog('productvariantpriceupdate setup batch_update: Failed to fetch product id='.$obj->fk_product_parent, LOG_ERR);
 				continue;
 			}
 
@@ -141,6 +142,7 @@ if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('va
 
 			foreach ($combinations as $currcomb) {
 				if ($currcomb->updateProperties($parent, $user) < 0) {
+					dol_syslog('productvariantpriceupdate setup batch_update: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$batchNbErrors++;
 				} else {
 					$batchNbUpdated++;
@@ -148,6 +150,7 @@ if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('va
 			}
 		}
 	} else {
+		dol_syslog('productvariantpriceupdate setup batch_update: SQL query failed: '.$db->lasterror(), LOG_ERR);
 		$batchNbErrors++;
 	}
 
@@ -175,6 +178,7 @@ if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('vari
 		while ($obj = $db->fetch_object($resql)) {
 			$parent = new Product($db);
 			if ($parent->fetch((int) $obj->fk_product_parent) <= 0) {
+				dol_syslog('productvariantpriceupdate setup update_all: Failed to fetch product id='.$obj->fk_product_parent, LOG_ERR);
 				continue;
 			}
 
@@ -183,6 +187,7 @@ if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('vari
 
 			foreach ($combinations as $currcomb) {
 				if ($currcomb->updateProperties($parent, $user) < 0) {
+					dol_syslog('productvariantpriceupdate setup update_all: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$nbErrors++;
 				} else {
 					$nbUpdated++;
@@ -190,6 +195,7 @@ if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('vari
 			}
 		}
 	} else {
+		dol_syslog('productvariantpriceupdate setup update_all: SQL query failed: '.$db->lasterror(), LOG_ERR);
 		$nbErrors++;
 	}
 
