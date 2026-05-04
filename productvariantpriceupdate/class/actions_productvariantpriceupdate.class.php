@@ -381,13 +381,10 @@ class ActionsProductVariantPriceUpdate
 	}
 
 	/**
-	 * Replaces the standard import row handler for the variant price import profile.
-	 * Updates variation fields directly on llx_product_attribute_combination (bypassing
-	 * the framework's import_key column which does not exist on that table), then calls
-	 * updateProperties() to propagate the change to the child product's selling price.
-	 * Returns 1 to tell the framework to skip its own import_insert() for this row.
+	 * Handles each row of the variant price import profile, bypassing the standard
+	 * import_insert() because llx_product_attribute_combination has no import_key column.
 	 *
-	 * @param	array		$parameters		Hook metadatas: 'datatoimport', 'arrayrecord', 'array_match_file_to_database', 'nbok'
+	 * @param	array		$parameters		Hook metadatas: 'datatoimport', 'arrayrecord', 'array_match_file_to_database'
 	 * @param	mixed		&$object		Not used
 	 * @param	string		&$action		Not used
 	 * @param	HookManager	$hookmanager	Hook manager

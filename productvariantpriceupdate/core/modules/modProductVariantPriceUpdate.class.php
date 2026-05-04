@@ -73,7 +73,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$this->editor_squarred_logo = 'logoSquareM34D.png@productvariantpriceupdate';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@productvariantpriceupdate'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.1.0';
+		$this->version = '1.1.1';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://github.com/m34dev/dolibarr-module-product-variant-price-update/raw/refs/heads/main/versionmodule.txt';
 
