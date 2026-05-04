@@ -88,6 +88,9 @@ $batchErrorProducts = [];
 $errorProducts = [];
 $continueOffset = null;
 $continueBatchSize = null;
+$progressStart = 0;
+$progressEnd = 0;
+$progressTotal = 0;
 
 // Stats
 $nbParentProducts = 0;
@@ -221,6 +224,9 @@ if ($action == 'reprocess_error_products' && isModEnabled('variants')) {
 	if (GETPOSTISSET('next_batch_offset')) {
 		$continueOffset = max(0, (int) GETPOST('next_batch_offset', 'int'));
 		$continueBatchSize = max(1, (int) GETPOST('batch_size', 'int'));
+		$progressStart = max(1, (int) GETPOST('batch_progress_start', 'int'));
+		$progressEnd = max(0, (int) GETPOST('batch_progress_end', 'int'));
+		$progressTotal = max(0, (int) GETPOST('batch_progress_total', 'int'));
 	}
 
 	foreach ($reprocessIds as $productId) {
@@ -341,6 +347,9 @@ if (isModEnabled('variants')) {
 			print '<input type="hidden" name="action" value="reprocess_error_products">';
 			print '<input type="hidden" name="next_batch_offset" value="'.$nextOffset.'">';
 			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
+			print '<input type="hidden" name="batch_progress_start" value="'.($batchOffset + 1).'">';
+			print '<input type="hidden" name="batch_progress_end" value="'.min($nextOffset, $batchNbParentsTotal).'">';
+			print '<input type="hidden" name="batch_progress_total" value="'.$batchNbParentsTotal.'">';
 			print '<ul>';
 			foreach ($batchErrorProducts as $prod) {
 				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
@@ -368,6 +377,16 @@ if (isModEnabled('variants')) {
 			print '</form>';
 		}
 	} elseif ($continueOffset !== null) {
+		if ($progressTotal > 0) {
+			$nbRemaining = max(0, $progressTotal - $progressEnd);
+			print '<p>';
+			print $langs->trans("BatchProgress", $progressStart, $progressEnd, $progressTotal);
+			if ($nbRemaining > 0) {
+				print ' — '.$langs->trans("BatchRemaining", $nbRemaining);
+			}
+			print '</p>';
+		}
+
 		if (!empty($errorProducts)) {
 			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
 			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
@@ -375,6 +394,9 @@ if (isModEnabled('variants')) {
 			print '<input type="hidden" name="action" value="reprocess_error_products">';
 			print '<input type="hidden" name="next_batch_offset" value="'.$continueOffset.'">';
 			print '<input type="hidden" name="batch_size" value="'.$continueBatchSize.'">';
+			print '<input type="hidden" name="batch_progress_start" value="'.$progressStart.'">';
+			print '<input type="hidden" name="batch_progress_end" value="'.$progressEnd.'">';
+			print '<input type="hidden" name="batch_progress_total" value="'.$progressTotal.'">';
 			print '<ul>';
 			foreach ($errorProducts as $prod) {
 				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
