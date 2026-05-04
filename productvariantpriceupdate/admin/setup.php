@@ -211,6 +211,43 @@ if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('vari
 	}
 }
 
+if ($action == 'reprocess_error_products' && $user->admin && isModEnabled('variants')) {
+	require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
+	$reprocessIds = array_filter(array_map('intval', (array) GETPOST('reprocess_ids', 'array')));
+	$nbReprocessUpdated = 0;
+	$nbReprocessErrors = 0;
+
+	foreach ($reprocessIds as $productId) {
+		$parent = new Product($db);
+		if ($parent->fetch($productId) <= 0) {
+			dol_syslog('productvariantpriceupdate setup reprocess: Failed to fetch product id='.$productId, LOG_ERR);
+			continue;
+		}
+
+		$comb = new ProductCombination($db);
+		$combinations = $comb->fetchAllByFkProductParent($parent->id);
+
+		foreach ($combinations as $currcomb) {
+			if ($currcomb->updateProperties($parent, $user) < 0) {
+				dol_syslog('productvariantpriceupdate setup reprocess: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
+				$nbReprocessErrors++;
+				$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+			} else {
+				$nbReprocessUpdated++;
+			}
+		}
+	}
+
+	if ($nbReprocessErrors) {
+		setEventMessages($langs->trans("AllVariantPricesUpdateErrors", $nbReprocessErrors), null, 'errors');
+	}
+	if ($nbReprocessUpdated) {
+		setEventMessages($langs->trans("AllVariantPricesUpdated", $nbReprocessUpdated), null, 'mesgs');
+	}
+}
+
 /*
  * View
  */
@@ -261,6 +298,9 @@ if (isModEnabled('variants')) {
 
 	if (!empty($errorProducts)) {
 		print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+		print '<input type="hidden" name="token" value="'.newToken().'">';
+		print '<input type="hidden" name="action" value="reprocess_error_products">';
 		print '<ul>';
 		foreach ($errorProducts as $prod) {
 			$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
@@ -269,8 +309,11 @@ if (isModEnabled('variants')) {
 				print ' — '.dol_escape_htmltag($prod['label']);
 			}
 			print '</a></li>';
+			print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
 		}
 		print '</ul>';
+		print '<input type="submit" class="button smallpaddingimp" value="'.$langs->trans("ReprocessErrorProducts").'">';
+		print '</form>';
 	}
 
 	print '<br>';
@@ -303,6 +346,9 @@ if (isModEnabled('variants')) {
 
 		if (!empty($batchErrorProducts)) {
 			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="reprocess_error_products">';
 			print '<ul>';
 			foreach ($batchErrorProducts as $prod) {
 				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
@@ -311,8 +357,11 @@ if (isModEnabled('variants')) {
 					print ' — '.dol_escape_htmltag($prod['label']);
 				}
 				print '</a></li>';
+				print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
 			}
 			print '</ul>';
+			print '<input type="submit" class="button smallpaddingimp" value="'.$langs->trans("ReprocessErrorProducts").'">';
+			print '</form>';
 		}
 	} else {
 		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
