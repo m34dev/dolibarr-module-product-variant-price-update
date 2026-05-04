@@ -89,6 +89,8 @@ $batchNbParentsTotal = 0;
 $batchDone = false;
 $batchErrorProducts = [];
 $errorProducts = [];
+$continueOffset = null;
+$continueBatchSize = null;
 
 // Stats
 $nbParentProducts = 0;
@@ -219,6 +221,11 @@ if ($action == 'reprocess_error_products' && $user->admin && isModEnabled('varia
 	$nbReprocessUpdated = 0;
 	$nbReprocessErrors = 0;
 
+	if (GETPOSTISSET('next_batch_offset')) {
+		$continueOffset = max(0, (int) GETPOST('next_batch_offset', 'int'));
+		$continueBatchSize = max(1, (int) GETPOST('batch_size', 'int'));
+	}
+
 	foreach ($reprocessIds as $productId) {
 		$parent = new Product($db);
 		if ($parent->fetch($productId) <= 0) {
@@ -312,8 +319,18 @@ if (isModEnabled('variants')) {
 			print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
 		}
 		print '</ul>';
-		print '<input type="submit" class="button smallpaddingimp" value="'.$langs->trans("ReprocessErrorProducts").'">';
+		print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
 		print '</form>';
+
+		if ($continueOffset !== null) {
+			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="batch_update_variant_prices">';
+			print '<input type="hidden" name="batch_offset" value="'.$continueOffset.'">';
+			print '<input type="hidden" name="batch_size" value="'.$continueBatchSize.'">';
+			print '<input type="submit" class="button" value="'.$langs->trans("BatchContinue").'">';
+			print '</form>';
+		}
 	}
 
 	print '<br>';
@@ -332,23 +349,13 @@ if (isModEnabled('variants')) {
 		}
 		print '</p>';
 
-		if ($batchDone) {
-			print '<p><strong>'.$langs->trans("BatchComplete").'</strong></p>';
-		} else {
-			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
-			print '<input type="hidden" name="token" value="'.newToken().'">';
-			print '<input type="hidden" name="action" value="batch_update_variant_prices">';
-			print '<input type="hidden" name="batch_offset" value="'.$nextOffset.'">';
-			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
-			print '<input type="submit" class="button" value="'.$langs->trans("BatchContinue").'">';
-			print '</form>';
-		}
-
 		if (!empty($batchErrorProducts)) {
 			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
 			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
 			print '<input type="hidden" name="token" value="'.newToken().'">';
 			print '<input type="hidden" name="action" value="reprocess_error_products">';
+			print '<input type="hidden" name="next_batch_offset" value="'.$nextOffset.'">';
+			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
 			print '<ul>';
 			foreach ($batchErrorProducts as $prod) {
 				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
@@ -360,7 +367,19 @@ if (isModEnabled('variants')) {
 				print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
 			}
 			print '</ul>';
-			print '<input type="submit" class="button smallpaddingimp" value="'.$langs->trans("ReprocessErrorProducts").'">';
+			print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
+			print '</form>';
+		}
+
+		if ($batchDone) {
+			print '<p><strong>'.$langs->trans("BatchComplete").'</strong></p>';
+		} else {
+			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="batch_update_variant_prices">';
+			print '<input type="hidden" name="batch_offset" value="'.$nextOffset.'">';
+			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
+			print '<input type="submit" class="button" value="'.$langs->trans("BatchContinue").'">';
 			print '</form>';
 		}
 	} else {
