@@ -131,6 +131,7 @@ class ActionsProductVariantPriceUpdate
 				if ($parent->fetch($comb->fk_product_parent) > 0) {
 					$result = $comb->updateProperties($parent, $user);
 					if ($result < 0) {
+						dol_syslog(__METHOD__.' updateProperties failed for product id='.$object->id.': '.$comb->error, LOG_ERR);
 						setEventMessages($comb->error, $comb->errors, 'errors');
 						return -1;
 					}
@@ -445,6 +446,7 @@ class ActionsProductVariantPriceUpdate
 		foreach ($parameters['toselect'] as $productId) {
 			$parent = new Product($db);
 			if ($parent->fetch((int) $productId) <= 0) {
+				dol_syslog(__METHOD__.' Failed to fetch product id='.$productId, LOG_ERR);
 				continue;
 			}
 
@@ -463,6 +465,7 @@ class ActionsProductVariantPriceUpdate
 			foreach ($combinations as $currcomb) {
 				$result = $currcomb->updateProperties($parent, $user);
 				if ($result < 0) {
+					dol_syslog(__METHOD__.' updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$this->errors[] = $currcomb->error;
 					$this->errors = array_merge($this->errors, $currcomb->errors);
 					$error++;
