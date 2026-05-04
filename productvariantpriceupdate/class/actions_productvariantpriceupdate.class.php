@@ -381,17 +381,19 @@ class ActionsProductVariantPriceUpdate
 	}
 
 	/**
-	 * Fires after each row is inserted/updated during the variant price import.
-	 * Calls ProductCombination::updateProperties() to propagate the new variation
-	 * to the child product's actual selling price.
+	 * Replaces the standard import row handler for the variant price import profile.
+	 * Updates variation fields directly on llx_product_attribute_combination (bypassing
+	 * the framework's import_key column which does not exist on that table), then calls
+	 * updateProperties() to propagate the change to the child product's selling price.
+	 * Returns 1 to tell the framework to skip its own import_insert() for this row.
 	 *
-	 * @param	array		$parameters		Hook metadatas including 'datatoimport', 'arrayrecord', 'array_match_file_to_database'
+	 * @param	array		$parameters		Hook metadatas: 'datatoimport', 'arrayrecord', 'array_match_file_to_database', 'nbok'
 	 * @param	mixed		&$object		Not used
 	 * @param	string		&$action		Not used
 	 * @param	HookManager	$hookmanager	Hook manager
-	 * @return	int							< 0 on error, 0 on success
+	 * @return	int							< 0 on error, 0 on success (standard code runs), 1 to replace standard code
 	 */
-	public function AfterImportInsert($parameters, &$object, &$action, $hookmanager): int
+	public function ImportInsert($parameters, &$object, &$action, $hookmanager): int
 	{
 		global $db, $langs, $user;
 
@@ -399,27 +401,32 @@ class ActionsProductVariantPriceUpdate
 			return 0;
 		}
 
-		// Find which CSV column maps to pac.fk_product_child
-		$childRefColKey = null;
-		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
-			if ($dbfield === 'pac.fk_product_child') {
-				$childRefColKey = (int) $colkey;
-				break;
-			}
-		}
-		if ($childRefColKey === null) {
-			dol_syslog(__METHOD__.' Could not find pac.fk_product_child column in import mapping', LOG_ERR);
-			return 0;
-		}
-
-		// arrayrecord is 0-based; array_match_file_to_database keys are 1-based
-		$childRef = $parameters['arrayrecord'][$childRefColKey - 1]['val'] ?? null;
-		if (empty($childRef)) {
-			dol_syslog(__METHOD__.' Empty child product ref in import row', LOG_ERR);
-			return 0;
-		}
-
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		// Build a dbfield => value map from the column mapping and raw CSV record.
+		// array_match_file_to_database keys are 1-based; arrayrecord is 0-based.
+		$colValues = array();
+		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
+			$colValues[$dbfield] = $parameters['arrayrecord'][(int) $colkey - 1]['val'] ?? null;
+		}
+
+		$childRef           = $colValues['pac.fk_product_child'] ?? null;
+		$variationPrice     = $colValues['pac.variation_price'] ?? null;
+		$variationIsPercent = $colValues['pac.variation_price_percentage'] ?? null;
+		$variationWeight    = $colValues['pac.variation_weight'] ?? null;
+
+		if (empty($childRef)) {
+			$this->error = $langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("ChildProductRef"));
+			return -1;
+		}
+		if ($variationPrice === null) {
+			$this->error = $langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("VariationPrice"));
+			return -1;
+		}
+		if ($variationIsPercent === null) {
+			$this->error = $langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("VariationPriceIsPercent"));
+			return -1;
+		}
 
 		require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
 		require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
@@ -427,33 +434,57 @@ class ActionsProductVariantPriceUpdate
 		$child = new Product($db);
 		if ($child->fetch(0, $childRef) <= 0) {
 			dol_syslog(__METHOD__.' Could not fetch child product ref='.$childRef, LOG_ERR);
-			$this->errors[] = $langs->trans("ErrorProductNotFound", $childRef);
+			$this->error = $langs->trans("ErrorProductNotFound", $childRef);
 			return -1;
 		}
 
 		$comb = new ProductCombination($db);
 		if ($comb->fetchByFkProductChild($child->id) <= 0) {
 			dol_syslog(__METHOD__.' No combination found for child product id='.$child->id.' ref='.$childRef, LOG_ERR);
-			$this->errors[] = $langs->trans("ErrorNotACombinationProduct", $childRef);
+			$this->error = $langs->trans("ErrorNotACombinationProduct", $childRef);
+			return -1;
+		}
+
+		$comb->variation_price            = (float) $variationPrice;
+		$comb->variation_price_percentage = (int) $variationIsPercent;
+		if ($variationWeight !== null) {
+			$comb->variation_weight = (float) $variationWeight;
+		}
+
+		$sql  = 'UPDATE '.MAIN_DB_PREFIX.'product_attribute_combination SET';
+		$sql .= ' variation_price = '.((float) $comb->variation_price);
+		$sql .= ', variation_price_percentage = '.((int) $comb->variation_price_percentage);
+		if ($variationWeight !== null) {
+			$sql .= ', variation_weight = '.((float) $comb->variation_weight);
+		}
+		$sql .= ' WHERE fk_product_child = '.((int) $child->id);
+		$sql .= ' AND entity IN ('.getEntity('product').')';
+
+		if (!$db->query($sql)) {
+			dol_syslog(__METHOD__.' SQL error updating combination for child ref='.$childRef.': '.$db->lasterror(), LOG_ERR);
+			$this->error = $db->lasterror();
 			return -1;
 		}
 
 		$parent = new Product($db);
 		if ($parent->fetch($comb->fk_product_parent) <= 0) {
 			dol_syslog(__METHOD__.' Could not fetch parent product id='.$comb->fk_product_parent.' for child ref='.$childRef, LOG_ERR);
-			$this->errors[] = $langs->trans("ErrorProductParentNotFound", $childRef);
+			$this->error = $langs->trans("ErrorProductParentNotFound", $childRef);
 			return -1;
 		}
 
 		$result = $comb->updateProperties($parent, $user);
 		if ($result < 0) {
 			dol_syslog(__METHOD__.' updateProperties failed for child ref='.$childRef.': '.$comb->error, LOG_ERR);
-			$this->errors[] = $comb->error;
-			$this->errors = array_merge($this->errors, $comb->errors);
+			$this->error = $comb->error;
 			return -1;
 		}
 
-		return 0;
+		// nbok is a reference inside $parameters; incrementing it keeps the
+		// wizard's success count accurate since we are skipping standard import_insert.
+		$parameters['nbok']++;
+
+		return 1;
 	}
 
 	/**
