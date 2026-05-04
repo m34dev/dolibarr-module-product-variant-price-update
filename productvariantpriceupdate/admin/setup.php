@@ -77,9 +77,6 @@ if (!$user->admin) {
 
 // Batch state
 $batchSize = max(1, (int) GETPOST('batch_size', 'int'));
-if ($batchSize === 0) {
-	$batchSize = 50;
-}
 $batchOffset = max(0, (int) GETPOST('batch_offset', 'int'));
 $batchRan = false;
 $batchNbUpdated = 0;
@@ -87,6 +84,13 @@ $batchNbErrors = 0;
 $batchNbParentsProcessed = 0;
 $batchNbParentsTotal = 0;
 $batchDone = false;
+$batchErrorProducts = [];
+$errorProducts = [];
+$continueOffset = null;
+$continueBatchSize = null;
+$progressStart = 0;
+$progressEnd = 0;
+$progressTotal = 0;
 
 // Stats
 $nbParentProducts = 0;
@@ -114,7 +118,7 @@ if (isModEnabled('variants')) {
  * Actions
  */
 
-if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('variants')) {
+if ($action == 'batch_update_variant_prices' && isModEnabled('variants')) {
 	require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
 	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 
@@ -144,6 +148,7 @@ if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('va
 				if ($currcomb->updateProperties($parent, $user) < 0) {
 					dol_syslog('productvariantpriceupdate setup batch_update: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$batchNbErrors++;
+					$batchErrorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
 				} else {
 					$batchNbUpdated++;
 				}
@@ -165,7 +170,7 @@ if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('va
 	}
 }
 
-if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('variants')) {
+if ($action == 'update_all_variant_prices' && isModEnabled('variants')) {
 	require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
 	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 
@@ -189,6 +194,7 @@ if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('vari
 				if ($currcomb->updateProperties($parent, $user) < 0) {
 					dol_syslog('productvariantpriceupdate setup update_all: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$nbErrors++;
+					$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
 				} else {
 					$nbUpdated++;
 				}
@@ -207,11 +213,54 @@ if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('vari
 	}
 }
 
+if ($action == 'reprocess_error_products' && isModEnabled('variants')) {
+	require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
+	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
+
+	$reprocessIds = array_filter(array_map('intval', (array) GETPOST('reprocess_ids', 'array')));
+	$nbReprocessUpdated = 0;
+	$nbReprocessErrors = 0;
+
+	if (GETPOSTISSET('next_batch_offset')) {
+		$continueOffset = max(0, (int) GETPOST('next_batch_offset', 'int'));
+		$continueBatchSize = max(1, (int) GETPOST('batch_size', 'int'));
+		$progressStart = max(1, (int) GETPOST('batch_progress_start', 'int'));
+		$progressEnd = max(0, (int) GETPOST('batch_progress_end', 'int'));
+		$progressTotal = max(0, (int) GETPOST('batch_progress_total', 'int'));
+	}
+
+	foreach ($reprocessIds as $productId) {
+		$parent = new Product($db);
+		if ($parent->fetch($productId) <= 0) {
+			dol_syslog('productvariantpriceupdate setup reprocess: Failed to fetch product id='.$productId, LOG_ERR);
+			continue;
+		}
+
+		$comb = new ProductCombination($db);
+		$combinations = $comb->fetchAllByFkProductParent($parent->id);
+
+		foreach ($combinations as $currcomb) {
+			if ($currcomb->updateProperties($parent, $user) < 0) {
+				dol_syslog('productvariantpriceupdate setup reprocess: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
+				$nbReprocessErrors++;
+				$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+			} else {
+				$nbReprocessUpdated++;
+			}
+		}
+	}
+
+	if ($nbReprocessErrors) {
+		setEventMessages($langs->trans("AllVariantPricesUpdateErrors", $nbReprocessErrors), null, 'errors');
+	}
+	if ($nbReprocessUpdated) {
+		setEventMessages($langs->trans("AllVariantPricesUpdated", $nbReprocessUpdated), null, 'mesgs');
+	}
+}
+
 /*
  * View
  */
-
-$form = new Form($db);
 
 $title = "ProductVariantPriceUpdateSetup";
 
@@ -255,6 +304,26 @@ if (isModEnabled('variants')) {
 	print '<input type="submit" class="button" value="'.$langs->trans("UpdateAllVariantPrices").'">';
 	print '</form>';
 
+	if (!empty($errorProducts) && $continueOffset === null) {
+		print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+		print '<input type="hidden" name="token" value="'.newToken().'">';
+		print '<input type="hidden" name="action" value="reprocess_error_products">';
+		print '<ul>';
+		foreach ($errorProducts as $prod) {
+			$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
+			print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
+			if ($prod['label']) {
+				print ' — '.dol_escape_htmltag($prod['label']);
+			}
+			print '</a></li>';
+			print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
+		}
+		print '</ul>';
+		print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
+		print '</form>';
+	}
+
 	print '<br>';
 
 	// Batch update section
@@ -271,6 +340,31 @@ if (isModEnabled('variants')) {
 		}
 		print '</p>';
 
+		if (!empty($batchErrorProducts)) {
+			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="reprocess_error_products">';
+			print '<input type="hidden" name="next_batch_offset" value="'.$nextOffset.'">';
+			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
+			print '<input type="hidden" name="batch_progress_start" value="'.($batchOffset + 1).'">';
+			print '<input type="hidden" name="batch_progress_end" value="'.min($nextOffset, $batchNbParentsTotal).'">';
+			print '<input type="hidden" name="batch_progress_total" value="'.$batchNbParentsTotal.'">';
+			print '<ul>';
+			foreach ($batchErrorProducts as $prod) {
+				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
+				print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
+				if ($prod['label']) {
+					print ' — '.dol_escape_htmltag($prod['label']);
+				}
+				print '</a></li>';
+				print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
+			}
+			print '</ul>';
+			print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
+			print '</form>';
+		}
+
 		if ($batchDone) {
 			print '<p><strong>'.$langs->trans("BatchComplete").'</strong></p>';
 		} else {
@@ -282,6 +376,49 @@ if (isModEnabled('variants')) {
 			print '<input type="submit" class="button" value="'.$langs->trans("BatchContinue").'">';
 			print '</form>';
 		}
+	} elseif ($continueOffset !== null) {
+		if ($progressTotal > 0) {
+			$nbRemaining = max(0, $progressTotal - $progressEnd);
+			print '<p>';
+			print $langs->trans("BatchProgress", $progressStart, $progressEnd, $progressTotal);
+			if ($nbRemaining > 0) {
+				print ' — '.$langs->trans("BatchRemaining", $nbRemaining);
+			}
+			print '</p>';
+		}
+
+		if (!empty($errorProducts)) {
+			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="reprocess_error_products">';
+			print '<input type="hidden" name="next_batch_offset" value="'.$continueOffset.'">';
+			print '<input type="hidden" name="batch_size" value="'.$continueBatchSize.'">';
+			print '<input type="hidden" name="batch_progress_start" value="'.$progressStart.'">';
+			print '<input type="hidden" name="batch_progress_end" value="'.$progressEnd.'">';
+			print '<input type="hidden" name="batch_progress_total" value="'.$progressTotal.'">';
+			print '<ul>';
+			foreach ($errorProducts as $prod) {
+				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
+				print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
+				if ($prod['label']) {
+					print ' — '.dol_escape_htmltag($prod['label']);
+				}
+				print '</a></li>';
+				print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
+			}
+			print '</ul>';
+			print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
+			print '</form>';
+		}
+
+		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+		print '<input type="hidden" name="token" value="'.newToken().'">';
+		print '<input type="hidden" name="action" value="batch_update_variant_prices">';
+		print '<input type="hidden" name="batch_offset" value="'.$continueOffset.'">';
+		print '<input type="hidden" name="batch_size" value="'.$continueBatchSize.'">';
+		print '<input type="submit" class="button" value="'.$langs->trans("BatchContinue").'">';
+		print '</form>';
 	} else {
 		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
 		print '<input type="hidden" name="token" value="'.newToken().'">';
