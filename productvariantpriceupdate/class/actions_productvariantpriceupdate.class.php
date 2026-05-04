@@ -480,9 +480,10 @@ class ActionsProductVariantPriceUpdate
 			return -1;
 		}
 
-		// nbok is a reference inside $parameters; incrementing it keeps the
-		// wizard's success count accurate since we are skipping standard import_insert.
-		$parameters['nbok']++;
+		// Increment the driver's update counter directly on the object — this is what
+		// the simulation summary displays. Using $parameters['obj'] (an object handle)
+		// is reliable across by-value array copies, unlike scalar references.
+		$parameters['obj']->nbupdate++;
 
 		return 1;
 	}
