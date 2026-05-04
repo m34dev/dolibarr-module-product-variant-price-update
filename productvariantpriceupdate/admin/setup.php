@@ -87,6 +87,8 @@ $batchNbErrors = 0;
 $batchNbParentsProcessed = 0;
 $batchNbParentsTotal = 0;
 $batchDone = false;
+$batchErrorProducts = [];
+$errorProducts = [];
 
 // Stats
 $nbParentProducts = 0;
@@ -144,6 +146,7 @@ if ($action == 'batch_update_variant_prices' && $user->admin && isModEnabled('va
 				if ($currcomb->updateProperties($parent, $user) < 0) {
 					dol_syslog('productvariantpriceupdate setup batch_update: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$batchNbErrors++;
+					$batchErrorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
 				} else {
 					$batchNbUpdated++;
 				}
@@ -189,6 +192,7 @@ if ($action == 'update_all_variant_prices' && $user->admin && isModEnabled('vari
 				if ($currcomb->updateProperties($parent, $user) < 0) {
 					dol_syslog('productvariantpriceupdate setup update_all: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$nbErrors++;
+					$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
 				} else {
 					$nbUpdated++;
 				}
@@ -255,6 +259,20 @@ if (isModEnabled('variants')) {
 	print '<input type="submit" class="button" value="'.$langs->trans("UpdateAllVariantPrices").'">';
 	print '</form>';
 
+	if (!empty($errorProducts)) {
+		print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+		print '<ul>';
+		foreach ($errorProducts as $prod) {
+			$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
+			print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
+			if ($prod['label']) {
+				print ' — '.dol_escape_htmltag($prod['label']);
+			}
+			print '</a></li>';
+		}
+		print '</ul>';
+	}
+
 	print '<br>';
 
 	// Batch update section
@@ -281,6 +299,20 @@ if (isModEnabled('variants')) {
 			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
 			print '<input type="submit" class="button" value="'.$langs->trans("BatchContinue").'">';
 			print '</form>';
+		}
+
+		if (!empty($batchErrorProducts)) {
+			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+			print '<ul>';
+			foreach ($batchErrorProducts as $prod) {
+				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
+				print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
+				if ($prod['label']) {
+					print ' — '.dol_escape_htmltag($prod['label']);
+				}
+				print '</a></li>';
+			}
+			print '</ul>';
 		}
 	} else {
 		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';

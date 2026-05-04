@@ -40,3 +40,4 @@ BatchContinue = Continue batch
 BatchProgress = Processing parent products: lot %s – %s of %s
 BatchRemaining = %s remaining
 BatchComplete = All batches complete
+ErrorProductsList = Parent products with errors:
