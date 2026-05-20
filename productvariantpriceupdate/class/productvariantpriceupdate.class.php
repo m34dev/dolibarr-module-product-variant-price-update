@@ -68,11 +68,13 @@ class ProductVariantPriceUpdate
 
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 
-		// Build a dbfield => value map from the column mapping and raw CSV record.
-		// array_match_file_to_database keys are 1-based; arrayrecord is 0-based.
+		// array_match_file_to_database keys are 1-based. arrayrecord base depends on
+		// the import driver: CSV uses 0-based keys, XLSX uses 1-based keys.
+		$zeroBased = isset($parameters['arrayrecord'][0]);
 		$colValues = array();
 		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
-			$colValues[$dbfield] = $parameters['arrayrecord'][(int) $colkey]['val'] ?? null;
+			$idx = $zeroBased ? (int) $colkey - 1 : (int) $colkey;
+			$colValues[$dbfield] = $parameters['arrayrecord'][$idx]['val'] ?? null;
 		}
 
 		$childRef           = $colValues['pac.fk_product_child'] ?? null;
@@ -166,9 +168,11 @@ class ProductVariantPriceUpdate
 
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 
+		$zeroBased = isset($parameters['arrayrecord'][0]);
 		$colValues = array();
 		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
-			$colValues[$dbfield] = $parameters['arrayrecord'][(int) $colkey]['val'] ?? null;
+			$idx = $zeroBased ? (int) $colkey - 1 : (int) $colkey;
+			$colValues[$dbfield] = $parameters['arrayrecord'][$idx]['val'] ?? null;
 		}
 
 		$parentRef          = $colValues['pac.fk_product_parent'] ?? null;

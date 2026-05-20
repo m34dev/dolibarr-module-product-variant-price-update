@@ -63,9 +63,9 @@ class modProductVariantPriceUpdate extends DolibarrModules
 
 		// DESCRIPTION_FLAG
 		// Module description, used if translation string 'ModuleProductVariantPriceUpdateDesc' not found (productvariantpriceupdate is name of module).
-		$this->description = "Product Variant Price Update";
+		$this->description = "Product Variant Import and Update";
 		// Used only if file README.md and README-LL.md not found.
-		$this->descriptionlong = "Product Variant Price Update";
+		$this->descriptionlong = "Product Variant Import and Update";
 
 		// Author
 		$this->editor_name = 'M34D - William Mead';
