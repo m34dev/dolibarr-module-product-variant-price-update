@@ -34,6 +34,11 @@ class ProductVariantPriceUpdate
 	public $error = '';
 
 	/**
+	 * @var string[] Errors
+	 */
+	public $errors = array();
+
+	/**
 	 * Handles each row of a variant import profile, dispatching to the appropriate handler
 	 * based on the import code. Returns 1 to replace standard import_insert() (which cannot
 	 * handle llx_product_attribute_combination due to the missing import_key column).
@@ -68,14 +73,7 @@ class ProductVariantPriceUpdate
 
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 
-		// array_match_file_to_database keys are 1-based. arrayrecord base depends on
-		// the import driver: CSV uses 0-based keys, XLSX uses 1-based keys.
-		$zeroBased = isset($parameters['arrayrecord'][0]);
-		$colValues = array();
-		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
-			$idx = $zeroBased ? (int) $colkey - 1 : (int) $colkey;
-			$colValues[$dbfield] = $parameters['arrayrecord'][$idx]['val'] ?? null;
-		}
+		$colValues = $this->buildColValues($parameters);
 
 		$childRef           = $colValues['pac.fk_product_child'] ?? null;
 		$variationPrice     = $colValues['pac.variation_price'] ?? null;
@@ -118,32 +116,10 @@ class ProductVariantPriceUpdate
 			$comb->variation_weight = (float) $variationWeight;
 		}
 
-		$sql  = 'UPDATE '.MAIN_DB_PREFIX.'product_attribute_combination SET';
-		$sql .= ' variation_price = '.((float) $comb->variation_price);
-		$sql .= ', variation_price_percentage = '.((int) $comb->variation_price_percentage);
-		if ($variationWeight !== null) {
-			$sql .= ', variation_weight = '.((float) $comb->variation_weight);
-		}
-		$sql .= ' WHERE fk_product_child = '.((int) $child->id);
-		$sql .= ' AND entity IN ('.getEntity('product').')';
-
-		if (!$db->query($sql)) {
-			dol_syslog(__METHOD__.' SQL error updating combination for child ref='.$childRef.': '.$db->lasterror(), LOG_ERR);
-			$this->error = $db->lasterror();
-			return -1;
-		}
-
-		$parent = new Product($db);
-		if ($parent->fetch($comb->fk_product_parent) <= 0) {
-			dol_syslog(__METHOD__.' Could not fetch parent product id='.$comb->fk_product_parent.' for child ref='.$childRef, LOG_ERR);
-			$this->error = $langs->trans("ErrorProductParentNotFound", $childRef);
-			return -1;
-		}
-
-		$result = $comb->updateProperties($parent, $user);
+		$result = $comb->update($user);
 		if ($result < 0) {
-			dol_syslog(__METHOD__.' updateProperties failed for child ref='.$childRef.': '.$comb->error, LOG_ERR);
-			$this->error = $comb->error;
+			dol_syslog(__METHOD__.' update() failed for child ref='.$childRef.': '.$comb->error, LOG_ERR);
+			$this->error = $comb->error ?: $db->lasterror();
 			return -1;
 		}
 
@@ -162,18 +138,32 @@ class ProductVariantPriceUpdate
 	 * @param	array	$parameters		Hook parameters including 'arrayrecord', 'array_match_file_to_database'
 	 * @return	int						< 0 on error, 1 to replace standard code
 	 */
-	private function importCreateVariant(array $parameters): int
+	/**
+	 * Builds the dbfield => value map from the hook parameters.
+	 * array_match_file_to_database keys are always 1-based; arrayrecord base depends
+	 * on the import driver (CSV: 0-based, XLSX: 1-based).
+	 *
+	 * @param	array	$parameters		Hook parameters
+	 * @return	array
+	 */
+	private function buildColValues(array $parameters): array
 	{
-		global $db, $langs, $user;
-
-		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
-
 		$zeroBased = isset($parameters['arrayrecord'][0]);
 		$colValues = array();
 		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
 			$idx = $zeroBased ? (int) $colkey - 1 : (int) $colkey;
 			$colValues[$dbfield] = $parameters['arrayrecord'][$idx]['val'] ?? null;
 		}
+		return $colValues;
+	}
+
+	private function importCreateVariant(array $parameters): int
+	{
+		global $db, $langs, $user;
+
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		$colValues = $this->buildColValues($parameters);
 
 		$parentRef          = $colValues['pac.fk_product_parent'] ?? null;
 		$attrRef            = $colValues['pa.ref'] ?? null;

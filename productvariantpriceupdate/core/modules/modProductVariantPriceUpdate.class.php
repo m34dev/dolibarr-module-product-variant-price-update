@@ -108,9 +108,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 			// Set this to 1 if module has its own theme directory (theme)
 			'theme' => 0,
 			// Set this to relative path of css file if module has its own css file
-			'css' => array(
-				'/productvariantpriceupdate/css/productvariantpriceupdate.css.php',
-			),
+			'css' => array(),
 			// Set this to relative path of js file if module must load a js on all pages
 			'js' => array(
 				//   '/productvariantpriceupdate/js/productvariantpriceupdate.js.php',
@@ -119,9 +117,6 @@ class modProductVariantPriceUpdate extends DolibarrModules
 			/* BEGIN MODULEBUILDER HOOKSCONTEXTS */
 			'hooks' => array(
 				   'data' => array(
-				       'productcard',
-					   'stockproductcard',
-				       'productcompositioncard',
 					   'productservicelist',
 					   'productpricecard',
 					   'imports',
@@ -162,7 +157,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		// Prerequisites
 		$this->phpmin = array(7, 4); // Minimum version of PHP required by module
 		// $this->phpmax = array(8, 0); // Maximum version of PHP required by module
-		$this->need_dolibarr_version = array(19, 0); // Minimum version of Dolibarr required by module
+		$this->need_dolibarr_version = array(20, 0); // Minimum version of Dolibarr required by module
 		// $this->max_dolibarr_version = array(19, -3); // Maximum version of Dolibarr required by module
 		$this->need_javascript_ajax = 0;
 

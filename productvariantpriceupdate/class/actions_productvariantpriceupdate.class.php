@@ -146,22 +146,6 @@ class ActionsProductVariantPriceUpdate
 	}
 
 	/**
-	 * Overloading the formObjectOptions function: replacing the parent's function with the one below
-	 *
-	 * @param	array			$parameters		Hook metadatas (context, etc...)
-	 * @param	mixed			&$object		The object to process
-	 * @param	string			&$action		Current action (if set). Generally create or edit or null
-	 * @param	HookManager		$hookmanager	Hook manager propagated to allow calling another hook
-	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
-	 */
-	public function formObjectOptions($parameters, &$object, &$action, $hookmanager): int
-	{
-		global $langs;
-		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
-		return 0;
-	}
-
-	/**
 	 * Adds an empty filter cell for the variant status column.
 	 *
 	 * @param	array			$parameters		Hook metadatas (context, etc...)
@@ -367,20 +351,6 @@ class ActionsProductVariantPriceUpdate
 	}
 
 	/**
-	 * Overloading the loadStaticObject function: replacing the parent's function with the one below
-	 *
-	 * @param	array			$parameters		Hook metadatas (context, etc...)
-	 * @param	mixed			&$object		The object to process
-	 * @param	string			&$action		Current action
-	 * @param	HookManager		$hookmanager	Hook manager
-	 * @return	int								< 0 on error, 0 on success, 1 to replace standard code
-	 */
-	public function loadStaticObject($parameters, &$object, &$action, $hookmanager): int
-	{
-		return 0;
-	}
-
-	/**
 	 * Handles each row of the variant price import profile, bypassing the standard
 	 * import_insert() because llx_product_attribute_combination has no import_key column.
 	 *
@@ -487,7 +457,7 @@ class ActionsProductVariantPriceUpdate
 				if ($result < 0) {
 					dol_syslog(__METHOD__.' updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$this->errors[] = $currcomb->error;
-					$this->errors = array_merge($this->errors, $currcomb->errors);
+					$this->errors = array_merge($this->errors, $currcomb->errors ?? array());
 					$error++;
 				} else {
 					$nbUpdated++;
