@@ -463,6 +463,37 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$this->import_updatekeys_array[$r] = array('pac.fk_product_child' => 'ChildProductRef');
 		$this->import_run_sql_after_array[$r] = array();
 		$r++;
+
+		$this->import_code[$r] = $this->rights_class.'_newvariants';
+		$this->import_label[$r] = 'CreateVariantCombinations';
+		$this->import_icon[$r] = $this->picto;
+		$this->import_entities_array[$r] = array();
+		$this->import_tables_array[$r] = array('nvc' => $this->db->prefix().'product_attribute_combination');
+		$this->import_fields_array[$r] = array(
+			'nvc.parent_ref'                  => 'ParentProductRef*',
+			'nvc.attribute_ref'               => 'VariantAttributeRef*',
+			'nvc.attribute_value_ref'         => 'VariantAttributeValueRef*',
+			'nvc.variant_ref'                 => 'VariantProductRef',
+			'nvc.variation_price'             => 'VariationPrice*',
+			'nvc.variation_price_percentage'  => 'VariationPriceIsPercent*',
+			'nvc.variation_weight'            => 'VariationWeight',
+		);
+		$this->import_convertvalue_array[$r] = array();
+		$this->import_regex_array[$r] = array(
+			'nvc.variation_price_percentage' => '^[01]$',
+		);
+		$this->import_examplevalues_array[$r] = array(
+			'nvc.parent_ref'                 => 'PROD-001',
+			'nvc.attribute_ref'              => 'COLOR',
+			'nvc.attribute_value_ref'        => 'RED',
+			'nvc.variant_ref'                => 'PROD-001-RED',
+			'nvc.variation_price'            => '5.00',
+			'nvc.variation_price_percentage' => '0',
+			'nvc.variation_weight'           => '0.100',
+		);
+		$this->import_updatekeys_array[$r] = array('nvc.variant_ref' => 'VariantProductRef');
+		$this->import_run_sql_after_array[$r] = array();
+		$r++;
 	}
 
 	/**
