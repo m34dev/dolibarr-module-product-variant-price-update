@@ -421,6 +421,61 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$r++; */
 		/* END MODULEBUILDER EXPORT MYOBJECT */
 
+		// Export profiles provided by this module
+		$r = 0;
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+		$this->export_code[$r]             = $this->rights_class.'_variantcombinations';
+		$this->export_label[$r]            = 'ExportVariantCombinations';
+		$this->export_icon[$r]             = $this->picto16;
+		$this->export_enabled[$r]          = '1';
+		$this->export_permission[$r]       = array(array("produit", "lire"));
+		$this->export_fields_array[$r]     = array(
+			'p.ref'                          => 'ParentProductRef',
+			'pa.ref'                         => 'VariantAttributeRef',
+			'pav.ref'                        => 'VariantAttributeValueRef',
+			'child.ref'                      => 'VariantProductRef',
+			'pac.variation_price'            => 'VariationPrice',
+			'pac.variation_price_percentage' => 'VariationPriceIsPercent',
+			'pac.variation_weight'           => 'VariationWeight',
+		);
+		$this->export_TypeFields_array[$r] = array(
+			'p.ref'                          => 'Text',
+			'pa.ref'                         => 'Text',
+			'pav.ref'                        => 'Text',
+			'child.ref'                      => 'Text',
+			'pac.variation_price'            => 'Numeric',
+			'pac.variation_price_percentage' => 'Numeric',
+			'pac.variation_weight'           => 'Numeric',
+		);
+		$this->export_entities_array[$r]   = array(
+			'p.ref'                          => 'product',
+			'pa.ref'                         => 'product',
+			'pav.ref'                        => 'product',
+			'child.ref'                      => 'product',
+			'pac.variation_price'            => 'product',
+			'pac.variation_price_percentage' => 'product',
+			'pac.variation_weight'           => 'product',
+		);
+		$this->export_examplevalues_array[$r] = array(
+			'p.ref'                          => 'PROD-001',
+			'pa.ref'                         => 'COLOR',
+			'pav.ref'                        => 'RED',
+			'child.ref'                      => 'PROD-001-RED',
+			'pac.variation_price'            => '5.00',
+			'pac.variation_price_percentage' => '0',
+			'pac.variation_weight'           => '0.100',
+		);
+		$this->export_sql_start[$r]  = 'SELECT DISTINCT ';
+		$this->export_sql_end[$r]    = ' FROM '.$this->db->prefix().'product_attribute_combination pac';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product p ON p.rowid = pac.fk_product_parent';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product child ON child.rowid = pac.fk_product_child';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product_attribute_combination2val pac2v ON pac2v.fk_prod_combination = pac.rowid';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product_attribute_value pav ON pav.rowid = pac2v.fk_prod_attr_val';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product_attribute pa ON pa.rowid = pav.fk_product_attribute';
+		$this->export_sql_end[$r]   .= ' WHERE pac.entity IN ('.getEntity('product').')';
+		$this->export_sql_order[$r]  = ' ORDER BY p.ref, pa.ref, pav.ref';
+		$r++;
+
 		// Imports profiles provided by this module
 		$r = 0;
 		/* BEGIN MODULEBUILDER IMPORT MYOBJECT */

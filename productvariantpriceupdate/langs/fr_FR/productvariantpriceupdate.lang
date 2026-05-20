@@ -52,6 +52,7 @@ VariationPriceIsPercent = La variation de prix est un pourcentage (0 ou 1)
 ErrorProductNotFound = Produit ref "%s" introuvable
 ErrorNotACombinationProduct = Le produit ref "%s" n'est pas une variante combinée
 ErrorProductParentNotFound = Produit parent introuvable pour l'enfant ref "%s"
+ExportVariantCombinations = Exporter les combinaisons de variantes
 CreateVariantCombinations = Créer des combinaisons de variantes
 ParentProductRef = Référence du produit parent
 VariantAttributeRef = Référence de l'attribut de variante
