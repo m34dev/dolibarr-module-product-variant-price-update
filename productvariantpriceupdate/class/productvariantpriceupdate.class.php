@@ -73,6 +73,11 @@ class ProductVariantPriceUpdate
 
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 
+		if (!$user->hasRight('produit', 'creer') && !$user->hasRight('service', 'creer')) {
+			$this->error = $langs->trans("NotEnoughPermissions");
+			return -1;
+		}
+
 		$colValues = $this->buildColValues($parameters);
 
 		$childRef           = $colValues['pac.fk_product_child'] ?? null;
@@ -162,6 +167,11 @@ class ProductVariantPriceUpdate
 		global $db, $langs, $user;
 
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+
+		if (!$user->hasRight('produit', 'creer') && !$user->hasRight('service', 'creer')) {
+			$this->error = $langs->trans("NotEnoughPermissions");
+			return -1;
+		}
 
 		$colValues = $this->buildColValues($parameters);
 
