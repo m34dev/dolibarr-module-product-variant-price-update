@@ -84,7 +84,8 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		// If file is in theme/yourtheme/img directory under name object_pictovalue.png, use this->picto='pictovalue'
 		// If file is in module/img directory under name object_pictovalue.png, use this->picto='pictovalue@module'
 		// To use a supported fa-xxx css style of font awesome, use this->picto='xxx'
-		$this->picto = 'productvariantpriceupdate@productvariantpriceupdate';;
+		$this->picto = 'productvariantpriceupdate@productvariantpriceupdate';
+		$this->picto16 = 'productvariantpriceupdate16px@productvariantpriceupdate';
 
 		// Define some features supported by module (triggers, login, substitutions, menus, css, etc...)
 		$this->module_parts = array(
@@ -433,7 +434,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 		$this->import_code[$r] = $this->rights_class.'_variantprices';
 		$this->import_label[$r] = 'VariantPriceVariations';
-		$this->import_icon[$r] = $this->picto;
+		$this->import_icon[$r] = $this->picto16;
 		$this->import_entities_array[$r] = array();
 		$this->import_tables_array[$r] = array('pac' => $this->db->prefix().'product_attribute_combination');
 		$this->import_fields_array[$r] = array(
@@ -466,32 +467,36 @@ class modProductVariantPriceUpdate extends DolibarrModules
 
 		$this->import_code[$r] = $this->rights_class.'_newvariants';
 		$this->import_label[$r] = 'CreateVariantCombinations';
-		$this->import_icon[$r] = $this->picto;
+		$this->import_icon[$r] = $this->picto16;
 		$this->import_entities_array[$r] = array();
-		$this->import_tables_array[$r] = array('nvc' => $this->db->prefix().'product_attribute_combination');
+		$this->import_tables_array[$r] = array(
+			'pac' => $this->db->prefix().'product_attribute_combination',
+			'pa'  => $this->db->prefix().'product_attribute',
+			'pav' => $this->db->prefix().'product_attribute_value'
+		);
 		$this->import_fields_array[$r] = array(
-			'nvc.parent_ref'                  => 'ParentProductRef*',
-			'nvc.attribute_ref'               => 'VariantAttributeRef*',
-			'nvc.attribute_value_ref'         => 'VariantAttributeValueRef*',
-			'nvc.variant_ref'                 => 'VariantProductRef',
-			'nvc.variation_price'             => 'VariationPrice*',
-			'nvc.variation_price_percentage'  => 'VariationPriceIsPercent*',
-			'nvc.variation_weight'            => 'VariationWeight',
+			'pac.fk_product_parent'          => 'ParentProductRef*',
+			'pa.ref'                         => 'VariantAttributeRef*',
+			'pav.ref'                        => 'VariantAttributeValueRef*',
+			'pac.fk_product_child'           => 'VariantProductRef*',
+			'pac.variation_price'            => 'VariationPrice*',
+			'pac.variation_price_percentage' => 'VariationPriceIsPercent*',
+			'pac.variation_weight'           => 'VariationWeight',
 		);
 		$this->import_convertvalue_array[$r] = array();
 		$this->import_regex_array[$r] = array(
-			'nvc.variation_price_percentage' => '^[01]$',
+			'pac.variation_price_percentage' => '^[01]$',
 		);
 		$this->import_examplevalues_array[$r] = array(
-			'nvc.parent_ref'                 => 'PROD-001',
-			'nvc.attribute_ref'              => 'COLOR',
-			'nvc.attribute_value_ref'        => 'RED',
-			'nvc.variant_ref'                => 'PROD-001-RED',
-			'nvc.variation_price'            => '5.00',
-			'nvc.variation_price_percentage' => '0',
-			'nvc.variation_weight'           => '0.100',
+			'pac.fk_product_parent'          => 'PROD-001',
+			'pa.ref'                         => 'COLOR',
+			'pav.ref'                        => 'RED',
+			'pac.fk_product_child'           => 'PROD-001-RED',
+			'pac.variation_price'            => '5.00',
+			'pac.variation_price_percentage' => '0',
+			'pac.variation_weight'           => '0.100',
 		);
-		$this->import_updatekeys_array[$r] = array('nvc.variant_ref' => 'VariantProductRef');
+		$this->import_updatekeys_array[$r] = array('pac.fk_product_child' => 'VariantProductRef');
 		$this->import_run_sql_after_array[$r] = array();
 		$r++;
 	}

@@ -72,7 +72,7 @@ class ProductVariantPriceUpdate
 		// array_match_file_to_database keys are 1-based; arrayrecord is 0-based.
 		$colValues = array();
 		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
-			$colValues[$dbfield] = $parameters['arrayrecord'][(int) $colkey - 1]['val'] ?? null;
+			$colValues[$dbfield] = $parameters['arrayrecord'][(int) $colkey]['val'] ?? null;
 		}
 
 		$childRef           = $colValues['pac.fk_product_child'] ?? null;
@@ -168,16 +168,16 @@ class ProductVariantPriceUpdate
 
 		$colValues = array();
 		foreach ($parameters['array_match_file_to_database'] as $colkey => $dbfield) {
-			$colValues[$dbfield] = $parameters['arrayrecord'][(int) $colkey - 1]['val'] ?? null;
+			$colValues[$dbfield] = $parameters['arrayrecord'][(int) $colkey]['val'] ?? null;
 		}
 
-		$parentRef          = $colValues['nvc.parent_ref'] ?? null;
-		$attrRef            = $colValues['nvc.attribute_ref'] ?? null;
-		$attrValueRef       = $colValues['nvc.attribute_value_ref'] ?? null;
-		$variantRef         = $colValues['nvc.variant_ref'] ?? null;
-		$variationPrice     = $colValues['nvc.variation_price'] ?? null;
-		$variationIsPercent = $colValues['nvc.variation_price_percentage'] ?? null;
-		$variationWeight    = $colValues['nvc.variation_weight'] ?? null;
+		$parentRef          = $colValues['pac.fk_product_parent'] ?? null;
+		$attrRef            = $colValues['pa.ref'] ?? null;
+		$attrValueRef       = $colValues['pav.ref'] ?? null;
+		$variantRef         = $colValues['pac.fk_product_child'] ?? null;
+		$variationPrice     = $colValues['pac.variation_price'] ?? null;
+		$variationIsPercent = $colValues['pac.variation_price_percentage'] ?? null;
+		$variationWeight    = $colValues['pac.variation_weight'] ?? null;
 
 		if (empty($parentRef)) {
 			$this->error = $langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("ParentProductRef"));
