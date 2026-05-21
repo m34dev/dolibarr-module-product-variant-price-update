@@ -63,9 +63,9 @@ class modProductVariantPriceUpdate extends DolibarrModules
 
 		// DESCRIPTION_FLAG
 		// Module description, used if translation string 'ModuleProductVariantPriceUpdateDesc' not found (productvariantpriceupdate is name of module).
-		$this->description = "Product Variant Price Update";
+		$this->description = "Product Variant Import and Update";
 		// Used only if file README.md and README-LL.md not found.
-		$this->descriptionlong = "Product Variant Price Update";
+		$this->descriptionlong = "Product Variant Import and Update";
 
 		// Author
 		$this->editor_name = 'M34D - William Mead';
@@ -73,7 +73,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$this->editor_squarred_logo = 'logoSquareM34D.png@productvariantpriceupdate';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@productvariantpriceupdate'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.1.0';
+		$this->version = '1.2.0';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://github.com/m34dev/dolibarr-module-product-variant-price-update/raw/refs/heads/main/versionmodule.txt';
 
@@ -84,7 +84,8 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		// If file is in theme/yourtheme/img directory under name object_pictovalue.png, use this->picto='pictovalue'
 		// If file is in module/img directory under name object_pictovalue.png, use this->picto='pictovalue@module'
 		// To use a supported fa-xxx css style of font awesome, use this->picto='xxx'
-		$this->picto = 'productvariantpriceupdate@productvariantpriceupdate';;
+		$this->picto = 'productvariantpriceupdate@productvariantpriceupdate';
+		$this->picto16 = 'productvariantpriceupdate16px@productvariantpriceupdate';
 
 		// Define some features supported by module (triggers, login, substitutions, menus, css, etc...)
 		$this->module_parts = array(
@@ -107,9 +108,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 			// Set this to 1 if module has its own theme directory (theme)
 			'theme' => 0,
 			// Set this to relative path of css file if module has its own css file
-			'css' => array(
-				'/productvariantpriceupdate/css/productvariantpriceupdate.css.php',
-			),
+			'css' => array(),
 			// Set this to relative path of js file if module must load a js on all pages
 			'js' => array(
 				//   '/productvariantpriceupdate/js/productvariantpriceupdate.js.php',
@@ -118,9 +117,6 @@ class modProductVariantPriceUpdate extends DolibarrModules
 			/* BEGIN MODULEBUILDER HOOKSCONTEXTS */
 			'hooks' => array(
 				   'data' => array(
-				       'productcard',
-					   'stockproductcard',
-				       'productcompositioncard',
 					   'productservicelist',
 					   'productpricecard',
 					   'imports',
@@ -161,7 +157,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		// Prerequisites
 		$this->phpmin = array(7, 4); // Minimum version of PHP required by module
 		// $this->phpmax = array(8, 0); // Maximum version of PHP required by module
-		$this->need_dolibarr_version = array(19, 0); // Minimum version of Dolibarr required by module
+		$this->need_dolibarr_version = array(20, 0); // Minimum version of Dolibarr required by module
 		// $this->max_dolibarr_version = array(19, -3); // Maximum version of Dolibarr required by module
 		$this->need_javascript_ajax = 0;
 
@@ -425,6 +421,61 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$r++; */
 		/* END MODULEBUILDER EXPORT MYOBJECT */
 
+		// Export profiles provided by this module
+		$r = 0;
+		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
+		$this->export_code[$r]             = $this->rights_class.'_variantcombinations';
+		$this->export_label[$r]            = 'ExportVariantCombinations';
+		$this->export_icon[$r]             = $this->picto16;
+		$this->export_enabled[$r]          = '1';
+		$this->export_permission[$r]       = array(array("produit", "lire"));
+		$this->export_fields_array[$r]     = array(
+			'p.ref'                          => 'ParentProductRef',
+			'pa.ref'                         => 'VariantAttributeRef',
+			'pav.ref'                        => 'VariantAttributeValueRef',
+			'child.ref'                      => 'VariantProductRef',
+			'pac.variation_price'            => 'VariationPrice',
+			'pac.variation_price_percentage' => 'VariationPriceIsPercent',
+			'pac.variation_weight'           => 'VariationWeight',
+		);
+		$this->export_TypeFields_array[$r] = array(
+			'p.ref'                          => 'Text',
+			'pa.ref'                         => 'Text',
+			'pav.ref'                        => 'Text',
+			'child.ref'                      => 'Text',
+			'pac.variation_price'            => 'Numeric',
+			'pac.variation_price_percentage' => 'Numeric',
+			'pac.variation_weight'           => 'Numeric',
+		);
+		$this->export_entities_array[$r]   = array(
+			'p.ref'                          => 'product',
+			'pa.ref'                         => 'product',
+			'pav.ref'                        => 'product',
+			'child.ref'                      => 'product',
+			'pac.variation_price'            => 'product',
+			'pac.variation_price_percentage' => 'product',
+			'pac.variation_weight'           => 'product',
+		);
+		$this->export_examplevalues_array[$r] = array(
+			'p.ref'                          => 'PROD-001',
+			'pa.ref'                         => 'COLOR',
+			'pav.ref'                        => 'RED',
+			'child.ref'                      => 'PROD-001-RED',
+			'pac.variation_price'            => '5.00',
+			'pac.variation_price_percentage' => '0',
+			'pac.variation_weight'           => '0.100',
+		);
+		$this->export_sql_start[$r]  = 'SELECT DISTINCT ';
+		$this->export_sql_end[$r]    = ' FROM '.$this->db->prefix().'product_attribute_combination pac';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product p ON p.rowid = pac.fk_product_parent';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product child ON child.rowid = pac.fk_product_child';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product_attribute_combination2val pac2v ON pac2v.fk_prod_combination = pac.rowid';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product_attribute_value pav ON pav.rowid = pac2v.fk_prod_attr_val';
+		$this->export_sql_end[$r]   .= ' INNER JOIN '.$this->db->prefix().'product_attribute pa ON pa.rowid = pav.fk_product_attribute';
+		$this->export_sql_end[$r]   .= ' WHERE pac.entity IN ('.getEntity('product').')';
+		$this->export_sql_order[$r]  = ' ORDER BY p.ref, pa.ref, pav.ref';
+		$r++;
+
 		// Imports profiles provided by this module
 		$r = 0;
 		/* BEGIN MODULEBUILDER IMPORT MYOBJECT */
@@ -433,7 +484,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$langs->load("productvariantpriceupdate@productvariantpriceupdate");
 		$this->import_code[$r] = $this->rights_class.'_variantprices';
 		$this->import_label[$r] = 'VariantPriceVariations';
-		$this->import_icon[$r] = $this->picto;
+		$this->import_icon[$r] = $this->picto16;
 		$this->import_entities_array[$r] = array();
 		$this->import_tables_array[$r] = array('pac' => $this->db->prefix().'product_attribute_combination');
 		$this->import_fields_array[$r] = array(
@@ -461,6 +512,41 @@ class modProductVariantPriceUpdate extends DolibarrModules
 			'pac.variation_weight'           => '0.100',
 		);
 		$this->import_updatekeys_array[$r] = array('pac.fk_product_child' => 'ChildProductRef');
+		$this->import_run_sql_after_array[$r] = array();
+		$r++;
+
+		$this->import_code[$r] = $this->rights_class.'_newvariants';
+		$this->import_label[$r] = 'CreateVariantCombinations';
+		$this->import_icon[$r] = $this->picto16;
+		$this->import_entities_array[$r] = array();
+		$this->import_tables_array[$r] = array(
+			'pac' => $this->db->prefix().'product_attribute_combination',
+			'pa'  => $this->db->prefix().'product_attribute',
+			'pav' => $this->db->prefix().'product_attribute_value'
+		);
+		$this->import_fields_array[$r] = array(
+			'pac.fk_product_parent'          => 'ParentProductRef*',
+			'pa.ref'                         => 'VariantAttributeRef*',
+			'pav.ref'                        => 'VariantAttributeValueRef*',
+			'pac.fk_product_child'           => 'VariantProductRef*',
+			'pac.variation_price'            => 'VariationPrice*',
+			'pac.variation_price_percentage' => 'VariationPriceIsPercent*',
+			'pac.variation_weight'           => 'VariationWeight',
+		);
+		$this->import_convertvalue_array[$r] = array();
+		$this->import_regex_array[$r] = array(
+			'pac.variation_price_percentage' => '^[01]$',
+		);
+		$this->import_examplevalues_array[$r] = array(
+			'pac.fk_product_parent'          => 'PROD-001',
+			'pa.ref'                         => 'COLOR',
+			'pav.ref'                        => 'RED',
+			'pac.fk_product_child'           => 'PROD-001-RED',
+			'pac.variation_price'            => '5.00',
+			'pac.variation_price_percentage' => '0',
+			'pac.variation_weight'           => '0.100',
+		);
+		$this->import_updatekeys_array[$r] = array('pac.fk_product_child' => 'VariantProductRef');
 		$this->import_run_sql_after_array[$r] = array();
 		$r++;
 	}

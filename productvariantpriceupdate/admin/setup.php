@@ -122,13 +122,7 @@ if ($action == 'batch_update_variant_prices' && isModEnabled('variants')) {
 	require_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
 	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 
-	$resql = $db->query('SELECT COUNT(DISTINCT fk_product_parent) as nb FROM '.MAIN_DB_PREFIX.'product_attribute_combination WHERE entity IN ('.getEntity('product').')');
-	if ($resql) {
-		$obj = $db->fetch_object($resql);
-		if ($obj) {
-			$batchNbParentsTotal = (int) $obj->nb;
-		}
-	}
+	$batchNbParentsTotal = $nbParentProducts;
 
 	$resql = $db->query('SELECT DISTINCT fk_product_parent FROM '.MAIN_DB_PREFIX.'product_attribute_combination WHERE entity IN ('.getEntity('product').') ORDER BY fk_product_parent LIMIT '.(int) $batchSize.' OFFSET '.(int) $batchOffset);
 
@@ -259,6 +253,43 @@ if ($action == 'reprocess_error_products' && isModEnabled('variants')) {
 }
 
 /*
+ * Helpers
+ */
+
+/**
+ * Renders a reprocess form: product list with links and a submit button.
+ * $extraHiddenFields carries batch-continuation state across the POST round-trip.
+ *
+ * @param array<int,array{id:int,ref:string,label:string}> $products
+ * @param array<string,scalar> $extraHiddenFields
+ */
+function pvpu_print_error_product_form(array $products, array $extraHiddenFields = []): void
+{
+	global $langs;
+
+	print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
+	print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+	print '<input type="hidden" name="token" value="'.newToken().'">';
+	print '<input type="hidden" name="action" value="reprocess_error_products">';
+	foreach ($extraHiddenFields as $name => $value) {
+		print '<input type="hidden" name="'.dol_escape_htmltag($name).'" value="'.dol_escape_htmltag((string) $value).'">';
+	}
+	print '<ul>';
+	foreach ($products as $prod) {
+		$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
+		print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
+		if ($prod['label']) {
+			print ' — '.dol_escape_htmltag($prod['label']);
+		}
+		print '</a></li>';
+		print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
+	}
+	print '</ul>';
+	print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
+	print '</form>';
+}
+
+/*
  * View
  */
 
@@ -305,23 +336,7 @@ if (isModEnabled('variants')) {
 	print '</form>';
 
 	if (!empty($errorProducts) && $continueOffset === null) {
-		print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
-		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
-		print '<input type="hidden" name="token" value="'.newToken().'">';
-		print '<input type="hidden" name="action" value="reprocess_error_products">';
-		print '<ul>';
-		foreach ($errorProducts as $prod) {
-			$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
-			print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
-			if ($prod['label']) {
-				print ' — '.dol_escape_htmltag($prod['label']);
-			}
-			print '</a></li>';
-			print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
-		}
-		print '</ul>';
-		print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
-		print '</form>';
+		pvpu_print_error_product_form($errorProducts);
 	}
 
 	print '<br>';
@@ -341,28 +356,13 @@ if (isModEnabled('variants')) {
 		print '</p>';
 
 		if (!empty($batchErrorProducts)) {
-			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
-			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
-			print '<input type="hidden" name="token" value="'.newToken().'">';
-			print '<input type="hidden" name="action" value="reprocess_error_products">';
-			print '<input type="hidden" name="next_batch_offset" value="'.$nextOffset.'">';
-			print '<input type="hidden" name="batch_size" value="'.$batchSize.'">';
-			print '<input type="hidden" name="batch_progress_start" value="'.($batchOffset + 1).'">';
-			print '<input type="hidden" name="batch_progress_end" value="'.min($nextOffset, $batchNbParentsTotal).'">';
-			print '<input type="hidden" name="batch_progress_total" value="'.$batchNbParentsTotal.'">';
-			print '<ul>';
-			foreach ($batchErrorProducts as $prod) {
-				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
-				print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
-				if ($prod['label']) {
-					print ' — '.dol_escape_htmltag($prod['label']);
-				}
-				print '</a></li>';
-				print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
-			}
-			print '</ul>';
-			print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
-			print '</form>';
+			pvpu_print_error_product_form($batchErrorProducts, array(
+				'next_batch_offset'    => $nextOffset,
+				'batch_size'          => $batchSize,
+				'batch_progress_start' => $batchOffset + 1,
+				'batch_progress_end'   => min($nextOffset, $batchNbParentsTotal),
+				'batch_progress_total' => $batchNbParentsTotal,
+			));
 		}
 
 		if ($batchDone) {
@@ -388,28 +388,13 @@ if (isModEnabled('variants')) {
 		}
 
 		if (!empty($errorProducts)) {
-			print '<p><strong>'.$langs->trans("ErrorProductsList").'</strong></p>';
-			print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
-			print '<input type="hidden" name="token" value="'.newToken().'">';
-			print '<input type="hidden" name="action" value="reprocess_error_products">';
-			print '<input type="hidden" name="next_batch_offset" value="'.$continueOffset.'">';
-			print '<input type="hidden" name="batch_size" value="'.$continueBatchSize.'">';
-			print '<input type="hidden" name="batch_progress_start" value="'.$progressStart.'">';
-			print '<input type="hidden" name="batch_progress_end" value="'.$progressEnd.'">';
-			print '<input type="hidden" name="batch_progress_total" value="'.$progressTotal.'">';
-			print '<ul>';
-			foreach ($errorProducts as $prod) {
-				$url = DOL_URL_ROOT.'/product/card.php?id='.(int) $prod['id'];
-				print '<li><a href="'.dol_escape_htmltag($url).'" target="_blank" rel="noopener noreferrer">'.dol_escape_htmltag($prod['ref']);
-				if ($prod['label']) {
-					print ' — '.dol_escape_htmltag($prod['label']);
-				}
-				print '</a></li>';
-				print '<input type="hidden" name="reprocess_ids[]" value="'.(int) $prod['id'].'">';
-			}
-			print '</ul>';
-			print '<input type="submit" class="button" value="'.$langs->trans("ReprocessErrorProducts").'">';
-			print '</form>';
+			pvpu_print_error_product_form($errorProducts, array(
+				'next_batch_offset'    => $continueOffset,
+				'batch_size'          => $continueBatchSize,
+				'batch_progress_start' => $progressStart,
+				'batch_progress_end'   => $progressEnd,
+				'batch_progress_total' => $progressTotal,
+			));
 		}
 
 		print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';

@@ -1,14 +1,14 @@
 # Translation file
 
 # Module label 'ModuleproductvariantpriceupdateName'
-ModuleproductvariantpriceupdateName = Product Variant Price Update
+ModuleproductvariantpriceupdateName = Product Variant Import and Update
 # Module description 'ModuleproductvariantpriceupdateDesc'
-ModuleproductvariantpriceupdateDesc = Product variant price and weight update
+ModuleproductvariantpriceupdateDesc = Product variant creation and updating
 
 #
 # Admin page
 #
-ProductVariantPriceUpdateSetup = Product Variant Price Update
+ProductVariantPriceUpdateSetup = Product Variant Import and Update
 Settings = Settings
 ProductVariantPriceUpdateSetupPage = Options
 ProductVariantPriceUpdateLevelShort = Product Variant Price Update
@@ -52,3 +52,11 @@ VariationPriceIsPercent = Price variation is a percentage (0 or 1)
 ErrorProductNotFound = Product ref "%s" not found
 ErrorNotACombinationProduct = Product ref "%s" is not a variant combination
 ErrorProductParentNotFound = Parent product not found for child ref "%s"
+ExportVariantCombinations = Export variant combinations
+CreateVariantCombinations = Create variant combinations
+ParentProductRef = Parent product reference
+VariantAttributeRef = Variant attribute reference
+VariantAttributeValueRef = Variant attribute value reference
+VariantProductRef = Variant product reference
+ErrorAttributeNotFound = Attribute ref "%s" not found
+ErrorAttributeValueNotFound = Attribute value ref "%s" not found for attribute "%s"

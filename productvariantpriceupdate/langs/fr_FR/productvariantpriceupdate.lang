@@ -1,14 +1,14 @@
 # Translation file
 
 # Module label 'ModuleproductvariantpriceupdateName'
-ModuleProductVariantPriceUpdateName = Mise à jour Prix Variante Produit
+ModuleProductVariantPriceUpdateName = Import et Mise à jour Variante Produit
 # Module description 'ModuleproductvariantpriceupdateDesc'
-ModuleProductVariantPriceUpdateDesc = Mise à jour prix et poids des produits variantes
+ModuleProductVariantPriceUpdateDesc = Import et Mise à jour des produits variantes
 
 #
 # Admin page
 #
-ProductVariantPriceUpdateSetup = Mise à jour Prix Variante Produit
+ProductVariantPriceUpdateSetup = Import et Mise à jour Variante Produit
 Settings = Settings
 ProductVariantPriceUpdateSetupPage = Options
 ProductVariantPriceUpdateLevelShort = Mise à jour Prix Variante Produit
@@ -52,3 +52,11 @@ VariationPriceIsPercent = La variation de prix est un pourcentage (0 ou 1)
 ErrorProductNotFound = Produit ref "%s" introuvable
 ErrorNotACombinationProduct = Le produit ref "%s" n'est pas une variante combinée
 ErrorProductParentNotFound = Produit parent introuvable pour l'enfant ref "%s"
+ExportVariantCombinations = Exporter les combinaisons de variantes
+CreateVariantCombinations = Créer des combinaisons de variantes
+ParentProductRef = Référence du produit parent
+VariantAttributeRef = Référence de l'attribut de variante
+VariantAttributeValueRef = Référence de la valeur d'attribut de variante
+VariantProductRef = Référence du produit variante
+ErrorAttributeNotFound = Attribut ref "%s" introuvable
+ErrorAttributeValueNotFound = Valeur d'attribut ref "%s" introuvable pour l'attribut "%s"
