@@ -73,7 +73,7 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$this->editor_squarred_logo = 'logoSquareM34D.png@productvariantpriceupdate';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@productvariantpriceupdate'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.2.0';
+		$this->version = '1.3.0';
 		// Url to the file with your last numberversion of this module
 		$this->url_last_version = 'https://github.com/m34dev/dolibarr-module-product-variant-price-update/raw/refs/heads/main/versionmodule.txt';
 
@@ -431,39 +431,47 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$this->export_permission[$r]       = array(array("produit", "lire"));
 		$this->export_fields_array[$r]     = array(
 			'p.ref'                          => 'ParentProductRef',
+			'p.price'						=> 'ParentProductPrice',
 			'pa.ref'                         => 'VariantAttributeRef',
 			'pav.ref'                        => 'VariantAttributeValueRef',
 			'child.ref'                      => 'VariantProductRef',
+			'child.price'					=> 'VariantProductPrice',
 			'pac.variation_price'            => 'VariationPrice',
 			'pac.variation_price_percentage' => 'VariationPriceIsPercent',
 			'pac.variation_weight'           => 'VariationWeight',
 		);
 		$this->export_TypeFields_array[$r] = array(
 			'p.ref'                          => 'Text',
+			'p.price'						=> 'Numeric',
 			'pa.ref'                         => 'Text',
 			'pav.ref'                        => 'Text',
 			'child.ref'                      => 'Text',
+			'child.price'					=> 'Numeric',
 			'pac.variation_price'            => 'Numeric',
 			'pac.variation_price_percentage' => 'Numeric',
 			'pac.variation_weight'           => 'Numeric',
 		);
 		$this->export_entities_array[$r]   = array(
 			'p.ref'                          => 'product',
+			'p.price'						=> 'product',
 			'pa.ref'                         => 'product',
 			'pav.ref'                        => 'product',
 			'child.ref'                      => 'product',
+			'child.price'					=> 'product',
 			'pac.variation_price'            => 'product',
 			'pac.variation_price_percentage' => 'product',
 			'pac.variation_weight'           => 'product',
 		);
 		$this->export_examplevalues_array[$r] = array(
 			'p.ref'                          => 'PROD-001',
+			'p.price'						=> '100.00',
 			'pa.ref'                         => 'COLOR',
 			'pav.ref'                        => 'RED',
 			'child.ref'                      => 'PROD-001-RED',
-			'pac.variation_price'            => '5.00',
+			'child.price'					=> '80.00',
+			'pac.variation_price'            => '20.00',
 			'pac.variation_price_percentage' => '0',
-			'pac.variation_weight'           => '0.100',
+			'pac.variation_weight'           => '0.500',
 		);
 		$this->export_sql_start[$r]  = 'SELECT DISTINCT ';
 		$this->export_sql_end[$r]    = ' FROM '.$this->db->prefix().'product_attribute_combination pac';
