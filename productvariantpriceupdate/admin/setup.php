@@ -139,6 +139,13 @@ if ($action == 'batch_update_variant_prices' && isModEnabled('variants')) {
 			$combinations = $comb->fetchAllByFkProductParent($parent->id);
 
 			foreach ($combinations as $currcomb) {
+				$typeCheck = pvpu_check_combination_types($currcomb);
+				if ($typeCheck !== true) {
+					dol_syslog('productvariantpriceupdate setup batch_update: type check failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$typeCheck, LOG_ERR);
+					$batchNbErrors++;
+					$batchErrorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+					continue;
+				}
 				if ($currcomb->updateProperties($parent, $user) < 0) {
 					dol_syslog('productvariantpriceupdate setup batch_update: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$batchNbErrors++;
@@ -185,6 +192,13 @@ if ($action == 'update_all_variant_prices' && isModEnabled('variants')) {
 			$combinations = $comb->fetchAllByFkProductParent($parent->id);
 
 			foreach ($combinations as $currcomb) {
+				$typeCheck = pvpu_check_combination_types($currcomb);
+				if ($typeCheck !== true) {
+					dol_syslog('productvariantpriceupdate setup update_all: type check failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$typeCheck, LOG_ERR);
+					$nbErrors++;
+					$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+					continue;
+				}
 				if ($currcomb->updateProperties($parent, $user) < 0) {
 					dol_syslog('productvariantpriceupdate setup update_all: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$nbErrors++;
@@ -234,6 +248,13 @@ if ($action == 'reprocess_error_products' && isModEnabled('variants')) {
 		$combinations = $comb->fetchAllByFkProductParent($parent->id);
 
 		foreach ($combinations as $currcomb) {
+			$typeCheck = pvpu_check_combination_types($currcomb);
+			if ($typeCheck !== true) {
+				dol_syslog('productvariantpriceupdate setup reprocess: type check failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$typeCheck, LOG_ERR);
+				$nbReprocessErrors++;
+				$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+				continue;
+			}
 			if ($currcomb->updateProperties($parent, $user) < 0) {
 				dol_syslog('productvariantpriceupdate setup reprocess: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 				$nbReprocessErrors++;
@@ -255,6 +276,62 @@ if ($action == 'reprocess_error_products' && isModEnabled('variants')) {
 /*
  * Helpers
  */
+
+/**
+ * Checks that numeric fields on a combination object contain valid numeric values.
+ * Returns true on success, or a human-readable error string describing the first
+ * bad field found (so the caller can surface it to the user and skip the update).
+ *
+ * @param ProductCombination $comb
+ * @return true|string
+ */
+function pvpu_check_combination_types(ProductCombination $comb)
+{
+	if (!is_numeric($comb->variation_price)) {
+		return 'variation_price is not numeric: '.var_export($comb->variation_price, true);
+	}
+	if (!is_numeric($comb->variation_weight)) {
+		return 'variation_weight is not numeric: '.var_export($comb->variation_weight, true);
+	}
+	if (!is_numeric($comb->variation_price_percentage)) {
+		return 'variation_price_percentage is not numeric: '.var_export($comb->variation_price_percentage, true);
+	}
+	if (!empty($comb->variation_price_levels) && is_array($comb->variation_price_levels)) {
+		foreach ($comb->variation_price_levels as $i => $level) {
+			if (is_object($level)) {
+				if (!is_numeric($level->variation_price)) {
+					return 'variation_price_levels['.$i.'].variation_price is not numeric: '.var_export($level->variation_price, true);
+				}
+				if (!is_numeric($level->variation_price_percentage)) {
+					return 'variation_price_levels['.$i.'].variation_price_percentage is not numeric: '.var_export($level->variation_price_percentage, true);
+				}
+			}
+		}
+	}
+	return true;
+}
+
+/**
+ * Casts numeric fields on a combination object to their expected types so that
+ * ProductCombination::updateProperties() does not receive strings in arithmetic.
+ * Call this only after pvpu_check_combination_types() has passed, or to fix known-safe data.
+ *
+ * @param ProductCombination $comb
+ */
+function pvpu_sanitize_combination_types(ProductCombination $comb): void
+{
+	$comb->variation_price            = (float) $comb->variation_price;
+	$comb->variation_weight           = (float) $comb->variation_weight;
+	$comb->variation_price_percentage = (int) $comb->variation_price_percentage;
+	if (!empty($comb->variation_price_levels) && is_array($comb->variation_price_levels)) {
+		foreach ($comb->variation_price_levels as $level) {
+			if (is_object($level)) {
+				$level->variation_price            = (float) $level->variation_price;
+				$level->variation_price_percentage = (int) $level->variation_price_percentage;
+			}
+		}
+	}
+}
 
 /**
  * Renders a reprocess form: product list with links and a submit button.
