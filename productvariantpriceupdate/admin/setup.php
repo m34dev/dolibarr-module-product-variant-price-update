@@ -146,7 +146,15 @@ if ($action == 'batch_update_variant_prices' && isModEnabled('variants')) {
 					$batchErrorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
 					continue;
 				}
-				if ($currcomb->updateProperties($parent, $user) < 0) {
+				try {
+					$updateResult = $currcomb->updateProperties($parent, $user);
+				} catch (TypeError $e) {
+					dol_syslog('productvariantpriceupdate setup batch_update: TypeError in updateProperties for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$e->getMessage(), LOG_ERR);
+					$batchNbErrors++;
+					$batchErrorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+					continue;
+				}
+				if ($updateResult < 0) {
 					dol_syslog('productvariantpriceupdate setup batch_update: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$batchNbErrors++;
 					$batchErrorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
@@ -199,7 +207,15 @@ if ($action == 'update_all_variant_prices' && isModEnabled('variants')) {
 					$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
 					continue;
 				}
-				if ($currcomb->updateProperties($parent, $user) < 0) {
+				try {
+					$updateResult = $currcomb->updateProperties($parent, $user);
+				} catch (TypeError $e) {
+					dol_syslog('productvariantpriceupdate setup update_all: TypeError in updateProperties for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$e->getMessage(), LOG_ERR);
+					$nbErrors++;
+					$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+					continue;
+				}
+				if ($updateResult < 0) {
 					dol_syslog('productvariantpriceupdate setup update_all: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 					$nbErrors++;
 					$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
@@ -255,7 +271,15 @@ if ($action == 'reprocess_error_products' && isModEnabled('variants')) {
 				$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
 				continue;
 			}
-			if ($currcomb->updateProperties($parent, $user) < 0) {
+			try {
+				$updateResult = $currcomb->updateProperties($parent, $user);
+			} catch (TypeError $e) {
+				dol_syslog('productvariantpriceupdate setup reprocess: TypeError in updateProperties for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$e->getMessage(), LOG_ERR);
+				$nbReprocessErrors++;
+				$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
+				continue;
+			}
+			if ($updateResult < 0) {
 				dol_syslog('productvariantpriceupdate setup reprocess: updateProperties failed for combination id='.$currcomb->id.' (parent id='.$parent->id.'): '.$currcomb->error, LOG_ERR);
 				$nbReprocessErrors++;
 				$errorProducts[$parent->id] = array('id' => $parent->id, 'ref' => $parent->ref, 'label' => $parent->label);
