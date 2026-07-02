@@ -431,10 +431,12 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		$this->export_permission[$r]       = array(array("produit", "lire"));
 		$this->export_fields_array[$r]     = array(
 			'p.ref'                          => 'ParentProductRef',
+			'p.label'						=> 'ParentProductLabel',
 			'p.price'						=> 'ParentProductPrice',
 			'pa.ref'                         => 'VariantAttributeRef',
 			'pav.ref'                        => 'VariantAttributeValueRef',
 			'child.ref'                      => 'VariantProductRef',
+			'child.label'					=> 'VariantProductLabel',
 			'child.price'					=> 'VariantProductPrice',
 			'pac.variation_price'            => 'VariationPrice',
 			'pac.variation_price_percentage' => 'VariationPriceIsPercent',
@@ -442,10 +444,12 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		);
 		$this->export_TypeFields_array[$r] = array(
 			'p.ref'                          => 'Text',
+			'p.label'						=> 'Text',
 			'p.price'						=> 'Numeric',
 			'pa.ref'                         => 'Text',
 			'pav.ref'                        => 'Text',
 			'child.ref'                      => 'Text',
+			'child.label'					=> 'Text',
 			'child.price'					=> 'Numeric',
 			'pac.variation_price'            => 'Numeric',
 			'pac.variation_price_percentage' => 'Numeric',
@@ -453,10 +457,12 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		);
 		$this->export_entities_array[$r]   = array(
 			'p.ref'                          => 'product',
+			'p.label'						=> 'product',
 			'p.price'						=> 'product',
 			'pa.ref'                         => 'product',
 			'pav.ref'                        => 'product',
 			'child.ref'                      => 'product',
+			'child.label'					=> 'product',
 			'child.price'					=> 'product',
 			'pac.variation_price'            => 'product',
 			'pac.variation_price_percentage' => 'product',
@@ -464,10 +470,12 @@ class modProductVariantPriceUpdate extends DolibarrModules
 		);
 		$this->export_examplevalues_array[$r] = array(
 			'p.ref'                          => 'PROD-001',
+			'p.label'						=> 'Product 001',
 			'p.price'						=> '100.00',
 			'pa.ref'                         => 'COLOR',
 			'pav.ref'                        => 'RED',
 			'child.ref'                      => 'PROD-001-RED',
+			'child.label'					=> 'Product 001 RED',
 			'child.price'					=> '80.00',
 			'pac.variation_price'            => '20.00',
 			'pac.variation_price_percentage' => '0',
